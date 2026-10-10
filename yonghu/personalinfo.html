@@ -1,0 +1,403 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>个人信息</title>
+    <!-- 外部依赖保持与修改密码页面一致 -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Microsoft YaHei', sans-serif;
+        }
+
+        body {
+            background-color: #f5f5f5;
+            color: #333;
+            padding: 50px 0;
+        }
+
+        /* 容器样式与修改密码页面保持一致 */
+        .info-container {
+            max-width: 600px;
+            margin: 0 auto;
+            background: #fff;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            padding: 30px;
+        }
+
+        .section-title {
+            font-size: 22px;
+            margin-bottom: 25px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #eee;
+            display: flex;
+            align-items: center;
+        }
+
+        .section-title i {
+            color: #1890ff;
+            margin-right: 10px;
+        }
+
+        .info-form {
+            width: 100%;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-label {
+            font-weight: 500;
+            margin-bottom: 8px;
+            display: block;
+            color: #4a5568;
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 10px 15px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+        }
+
+        .form-control:disabled {
+            background-color: #f9f9f9;
+            cursor: not-allowed;
+        }
+
+        .form-control:focus {
+            border-color: #1890ff;
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(24, 144, 255, 0.1);
+        }
+
+        /* 按钮样式优化：保持原有风格，新增保存/取消按钮 */
+        .btn-group {
+            margin-top: 30px;
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px; /* 按钮间距 */
+        }
+
+        .btn {
+            padding: 10px 20px;
+            font-size: 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+            border: none;
+            text-decoration: none;
+        }
+
+        .edit-btn {
+            background-color: #1890ff;
+            color: white;
+        }
+
+        .edit-btn:hover {
+            background-color: #096dd9;
+        }
+
+        .save-btn {
+            background-color: #52c41a;
+            color: white;
+            display: none; /* 初始隐藏 */
+        }
+
+        .save-btn:hover {
+            background-color: #45a814;
+        }
+
+        .cancel-btn {
+            background-color: #f5f5f5;
+            color: #333;
+            display: none; /* 初始隐藏 */
+        }
+
+        .cancel-btn:hover {
+            background-color: #e8e8e8;
+        }
+
+        /* 加载中占位 */
+        .form-control::placeholder {
+            color: #999;
+            font-style: italic;
+        }
+
+        /* 响应式适配与修改密码页面保持一致 */
+        @media (max-width: 576px) {
+            .info-container {
+                padding: 20px;
+                margin: 0 15px;
+            }
+
+            .btn-group {
+                flex-direction: column;
+            }
+
+            .btn {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="info-container">
+        <h2 class="section-title">
+            <i class="fas fa-user"></i>
+            个人信息
+        </h2>
+
+        <!-- 个人信息表单：已删除性别选项 -->
+        <form class="info-form" id="info-form">
+            <div class="form-group">
+                <label for="username" class="form-label">用户名称</label>
+                <input type="text" class="form-control" id="username" disabled placeholder="加载中...">
+            </div>
+
+            <div class="form-group">
+                <label for="phone" class="form-label">联系电话</label>
+                <input type="tel" class="form-control" id="phone" disabled placeholder="加载中...">
+            </div>
+
+            <div class="form-group">
+                <label for="email" class="form-label">电子邮箱</label>
+                <input type="email" class="form-control" id="email" disabled placeholder="加载中...">
+            </div>
+
+            <div class="btn-group">
+                <button type="button" class="btn edit-btn" id="edit-btn">
+                    <i class="fas fa-edit"></i> 编辑信息
+                </button>
+                <button type="button" class="btn save-btn" id="save-btn">
+                    <i class="fas fa-save"></i> 保存修改
+                </button>
+                <button type="button" class="btn cancel-btn" id="cancel-btn">
+                    <i class="fas fa-times"></i> 取消
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <script type="module">
+        import url1 from '../peizhi/config.js';
+        
+        // 获取DOM元素（已移除性别相关元素）
+        const usernameEl = document.getElementById('username');
+        const phoneEl = document.getElementById('phone');
+        const emailEl = document.getElementById('email');
+        const editBtn = document.getElementById('edit-btn');
+        const saveBtn = document.getElementById('save-btn');
+        const cancelBtn = document.getElementById('cancel-btn');
+
+        // 存储原始用户信息（用于取消编辑时恢复）
+        let originalUserData = {};
+
+        // 页面加载时获取用户信息
+        document.addEventListener('DOMContentLoaded', () => {
+            fetchUserInfo();
+            bindButtonEvents(); // 绑定按钮事件
+        });
+
+        /**
+         * 绑定编辑/保存/取消按钮事件
+         */
+        function bindButtonEvents() {
+            // 编辑按钮：启用表单编辑
+            editBtn.addEventListener('click', () => {
+                usernameEl.disabled = false;
+                phoneEl.disabled = false;
+                emailEl.disabled = false;
+
+                editBtn.style.display = 'none';
+                saveBtn.style.display = 'inline-block';
+                cancelBtn.style.display = 'inline-block';
+
+                usernameEl.focus();
+            });
+
+            // 取消按钮：恢复原始状态
+            cancelBtn.addEventListener('click', () => {
+                usernameEl.disabled = true;
+                phoneEl.disabled = true;
+                emailEl.disabled = true;
+
+                updateUserInfo(originalUserData);
+
+                editBtn.style.display = 'inline-block';
+                saveBtn.style.display = 'none';
+                cancelBtn.style.display = 'none';
+            });
+
+            // 保存按钮：提交修改（添加日志打印，方便排查）
+            saveBtn.addEventListener('click', () => {
+                saveModifiedInfo().catch(err => {
+                    console.error('保存逻辑异常:', err);
+                    alert('保存失败，请刷新页面重试');
+                });
+            });
+        }
+
+        /**
+         * 获取用户信息（添加日志，确认原始数据结构）
+         */
+        function fetchUserInfo() {
+            const token = localStorage.getItem('token');
+            
+            if (!token) {
+                alert('请先登录');
+                window.location.href = './login.html';
+                return;
+            }
+
+            axios({
+                url: `${url1}/api/users/profile`,
+                method: 'get',
+                headers: {
+                    Authorization: `Bearer ${token}`
+                }
+            }).then(response => {
+                const userData = response.data;
+                originalUserData = { ...userData };
+                // 打印原始数据结构，确认是否有用户ID等关键字段
+                console.log('获取到的用户原始数据:', userData);
+                updateUserInfo(userData);
+            }).catch(error => {
+                console.error('获取用户信息失败:', error);
+                if (error.response && error.response.status === 401) {
+                    localStorage.removeItem('token');
+                    alert('登录已过期，请重新登录');
+                    window.location.href = './login.html';
+                } else {
+                    alert('获取用户信息失败，请稍后重试');
+                    usernameEl.value = '获取失败';
+                    phoneEl.value = '获取失败';
+                    emailEl.value = '获取失败';
+                }
+            });
+        }
+
+        /**
+         * 更新用户信息到页面
+         */
+        function updateUserInfo(userData) {
+            usernameEl.value = userData.username || '未设置';
+            phoneEl.value = userData.phone_number || '未绑定';
+            emailEl.value = userData.email || '未设置';
+        }
+
+        /**
+         * 保存修改后的用户信息（核心修改：请求方法改为PATCH）
+         */
+        async function saveModifiedInfo() {
+            const token = localStorage.getItem('token');
+            if (!token) {
+                alert('登录已过期，请重新登录');
+                window.location.href = './login.html';
+                return;
+            }
+
+            // 1. 简化参数：只传必要字段，避免多余参数导致后端解析异常
+            const modifiedData = {
+                // 优先使用原始数据中的用户标识（兼容id/user_id/uid等常见字段名）
+                id: originalUserData.id || originalUserData.user_id || originalUserData.uid || '',
+                username: usernameEl.value.trim(),
+                phone: phoneEl.value.trim() || '', // 后端可能用phone而非phone_number，统一为phone
+                email: emailEl.value.trim() || ''
+            };
+
+            // 2. 关键验证：确保用户标识存在（后端必须用它定位用户）
+            if (!modifiedData.id) {
+                alert('无法识别用户身份，请重新登录');
+                localStorage.removeItem('token');
+                setTimeout(() => window.location.href = './login.html', 1500);
+                return;
+            }
+
+            // 3. 基础验证（保持不变）
+            if (!modifiedData.username) {
+                alert('用户名称不能为空');
+                usernameEl.focus();
+                return;
+            }
+            if (modifiedData.phone && !/^1[3-9]\d{9}$/.test(modifiedData.phone)) {
+                alert('请输入有效的手机号码');
+                phoneEl.focus();
+                return;
+            }
+            if (modifiedData.email && !/^[\w.-]+@[a-zA-Z0-9-]+\.[a-zA-Z]+$/.test(modifiedData.email)) {
+                alert('请输入有效的电子邮箱');
+                emailEl.focus();
+                return;
+            }
+
+            console.log('提交给后端的参数:', modifiedData);
+            console.log('请求地址:', `${url1}/api/users/profile`);
+            console.log('请求方法:', 'PATCH'); 
+
+            try {
+                const response = await axios({
+                    url: `${url1}/api/users/profile/`,
+                    method: 'PATCH',
+                    headers: {
+                        Authorization: `Bearer ${token}`,
+                        'Content-Type': 'application/json', // 明确JSON格式
+                        'Accept': 'application/json' // 告诉后端返回JSON
+                    },
+                    data: modifiedData,
+                    timeout: 15000
+                });
+
+                // 6. 成功处理
+                console.log('后端响应:', response.data);
+                alert('个人信息修改成功！');
+                originalUserData = { ...originalUserData, ...modifiedData };
+                // 同步更新缓存
+                const storedUser = localStorage.getItem('userInfo');
+                if (storedUser) {
+                    const userInfo = JSON.parse(storedUser);
+                    Object.assign(userInfo, modifiedData);
+                    localStorage.setItem('userInfo', JSON.stringify(userInfo));
+                }
+                cancelBtn.click();
+            } catch (error) {
+                // 7. 错误详情打印（让后端看这个日志！）
+                console.error('保存失败-错误详情:', {
+                    status: error.response?.status,
+                    statusText: error.response?.statusText,
+                    responseData: error.response?.data, // 后端返回的错误信息（最关键）
+                    requestConfig: error.config, // 请求配置（参数、地址、方法）
+                    errorMessage: error.message
+                });
+
+                // 友好提示
+                let errorMsg = '修改失败，请联系管理员';
+                if (error.response?.data?.message) {
+                    errorMsg = error.response.data.message; // 显示后端明确的错误原因
+                } else if (error.code === 'ECONNABORTED') {
+                    errorMsg = '请求超时，请检查网络';
+                } else if (error.response?.status === 403) {
+                    errorMsg = '没有修改权限';
+                } else if (error.response?.status === 404) {
+                    errorMsg = '接口地址错误，请确认后端配置';
+                }
+
+                alert(errorMsg);
+            }
+        }
+    </script>
+</body>
+</html>

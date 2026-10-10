@@ -1,0 +1,672 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>潮流男装 - 商品详情</title>
+    <link href="https://cdn.bootcdn.net/ajax/libs/twitter-bootstrap/4.6.0/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.bootcdn.net/ajax/libs/font-awesome/5.15.4/css/all.min.css" rel="stylesheet">
+    <script src="https://cdn.bootcdn.net/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
+    <script src="https://cdn.bootcdn.net/ajax/libs/twitter-bootstrap/4.6.0/js/bootstrap.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <style>
+        /* 原有样式不变，此处省略 */
+        :root {
+            --primary-color: #3498db;
+            --secondary-color: #f8f9fa;
+            --accent-color: #ff6b6b;
+        }
+
+        body {
+            font-family: 'Segoe UI', 'Microsoft YaHei', sans-serif;
+            background-color: #f5f5f5;
+            color: #333;
+        }
+
+        .product-container {
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 2px 15px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+            margin-bottom: 20px;
+        }
+
+        .product-image {
+            width: 100%;
+            height: auto;
+            object-fit: cover;
+            border-bottom: 1px solid #eee;
+            min-height: 300px;
+        }
+
+        .product-title {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: #2c3e50;
+            margin-bottom: 15px;
+        }
+
+        .product-price {
+            font-size: 1.8rem;
+            color: var(--accent-color);
+            font-weight: bold;
+            margin: 15px 0;
+        }
+
+        .shop-info {
+            display: flex;
+            align-items: center;
+            padding: 15px;
+            background: var(--secondary-color);
+            border-radius: 8px;
+            margin-bottom: 15px;
+        }
+
+        .shop-avatar {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            margin-right: 15px;
+            object-fit: cover;
+            border: 2px solid white;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        }
+
+        .shop-name {
+            font-weight: 600;
+            font-size: 1.1rem;
+        }
+
+        .detail-card {
+            background: white;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 15px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+        }
+
+        .detail-title {
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: var(--primary-color);
+            margin-bottom: 15px;
+            padding-bottom: 8px;
+            border-bottom: 2px solid #eee;
+        }
+
+        .btn-custom {
+            background: var(--primary-color);
+            color: white;
+            border-radius: 50px;
+            padding: 10px 25px;
+            font-weight: 600;
+            border: none;
+            transition: all 0.3s;
+        }
+
+        .btn-custom:hover {
+            background: #2980b9;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .rating {
+            color: #f39c12;
+            margin-bottom: 10px;
+        }
+
+        .tag {
+            display: inline-block;
+            background: #e8f4fc;
+            color: var(--primary-color);
+            padding: 3px 10px;
+            border-radius: 50px;
+            font-size: 0.8rem;
+            margin-right: 5px;
+            margin-bottom: 5px;
+        }
+
+        .nav-tabs .nav-link.active {
+            color: var(--primary-color);
+            font-weight: 600;
+            border-bottom: 2px solid var(--primary-color);
+        }
+
+        .goto-location-btn {
+            margin-top: 15px;
+        }
+
+        .loading {
+            color: #999;
+            background: #f5f5f5;
+            padding: 2px 8px;
+            border-radius: 4px;
+            display: inline-block;
+        }
+
+        .error-message {
+            color: #e74c3c;
+            padding: 15px;
+            text-align: center;
+            background: #fef0f0;
+            border-radius: 8px;
+            margin-bottom: 15px;
+        }
+
+        .btn-loading {
+            opacity: 0.7;
+            cursor: not-allowed;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container py-4">
+        <div class="error-message" style="display: none;"></div>
+
+        <div class="product-container p-0 mb-4">
+            <img src="https://picsum.photos/800/600?random=1" class="product-image" alt="商品主图">
+            <div class="p-4">
+                <h1 class="product-title"><span class="loading">加载中...</span></h1>
+                <div class="product-price"><span class="loading">加载中...</span></div>
+                <div class="mb-3">
+                    <span class="tag loading">加载中...</span>
+                </div>
+                <a href="javascript:;" class="btn btn-custom goto-location-btn" id="locationBtn" target="_self"
+                    disabled>
+                    <i class="fas fa-map-marker-alt mr-2"></i>查看商家位置（导航）
+                </a>
+                <a class="btn btn-custom goto-location-btn ml-3" id="newFunctionBtn">
+                    <i class="fas fa-rocket mr-2"></i>收藏
+                </a>
+            </div>
+        </div>
+
+        <ul class="nav nav-tabs mb-4" id="productTab" role="tablist">
+            <!-- 修复：原代码中"商品详情"标签的ID重复问题 -->
+            <li class="nav-item">
+                <a class="nav-link active" id="shop-tab" data-toggle="tab" href="#shop" role="tab">商家信息</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" id="detail-tab" data-toggle="tab" href="#detail" role="tab">商品详情</a>
+            </li>
+        </ul>
+        <div class="tab-content" id="productTabContent">
+            <div class="tab-pane fade show active" id="shop" role="tabpanel">
+                <div class="detail-card">
+                    <div class="shop-info">
+                        <img src="https://picsum.photos/100/100?random=5" class="shop-avatar" id="shopavatar"
+                            alt="店铺头像">
+                        <div>
+                            <h4 class="shop-name mb-1" id="shopNameLink"
+                                style="cursor: pointer; color: var(--primary-color);">
+                                <span class="loading">加载中...</span>
+                                <div class="rating mb-2">
+                                    <i class="fas fa-star"></i>
+                                    <i class="fas fa-star"></i>
+                                    <i class="fas fa-star"></i>
+                                    <i class="fas fa-star"></i>
+                                    <i class="fas fa-star-half-alt"></i>
+                                    <span class="text-muted ml-2"><span class="loading">加载中...</span></span>
+                                </div>
+                                <div>
+                                    <span class="badge badge-primary loading">加载中...</span>
+                                </div>
+                        </div>
+                    </div>
+
+
+                </div>
+            </div>
+            <!-- 其他标签页内容不变，此处省略 -->
+            <div class="tab-pane fade" id="detail" role="tabpanel">
+                <div class="detail-card">
+                    <h3 class="detail-title">商品介绍</h3>
+                    <p><span class="loading">加载中...</span></p>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <script type="module">
+        import url1 from '../peizhi/config.js';
+        const shopavatar = document.getElementById('shopavatar')
+        function formatImageUrl(oldImageUrl) {
+            // 处理空链接或无效链接（返回默认占位图，避免显示破碎图片）
+            const urlObj = new URL(oldImageUrl);
+            // 拼接新域名 + 图片路径（保留中文编码，浏览器会自动识别）
+            return `${url1}${urlObj.pathname}`;
+            // 若链接格式异常，直接返回原链接（避免报错）
+        }
+        // formatImageUrl(item.image)
+        $(function () {
+            const config = {
+                productListApi: `${url1}/api/products/`,
+                locationPage: "merchant-location.html",
+                listPage: "index.html",
+                defaultProductImg: "https://picsum.photos/800/600?random=1",
+                shopApiBase: `${url1}/api/shops/` // 店铺接口基础地址
+            };
+
+            let currentShopId = null;
+            let targetProductId = getTargetProductId();
+            let currentProduct = null;
+            let shopLatLng = { longitude: null, latitude: null };
+            // 新增：存储完整店铺信息
+            let shopFullInfo = null;
+
+            // 1. 提取URL参数（不变）
+            function getTargetProductId() {
+                const urlParams = new URLSearchParams(window.location.search);
+                let id = urlParams.get("id");
+                currentShopId = urlParams.get("shop_id");
+                console.log("=== 步骤1：从URL提取参数 ===");
+                console.log("提取的product_id：", id);
+                console.log("提取的shop_id：", currentShopId);
+                if (!id || id === "undefined" || id.trim() === "") {
+                    console.warn("URL未携带有效product_id，将加载接口第一个商品");
+                    return null;
+                }
+                if (!id.includes("-")) {
+                    console.warn(`product_id格式无效（${id}），将加载接口第一个商品`);
+                    return null;
+                }
+                return id;
+            }
+
+            // 2. 核心：获取店铺信息并打印（优化请求配置与数据处理）
+            function fetchShopLatLng() {
+                return new Promise((resolve, reject) => {
+                    if (!currentShopId) {
+                        const errMsg = "未从URL提取到shop_id，无法调用店铺接口";
+                        console.error("=== 步骤2：店铺接口请求失败 ===");
+                        console.error(errMsg);
+                        reject(new Error(errMsg));
+                        return;
+                    }
+
+                    // 拼接正确的店铺接口地址（使用统一域名 26.37.246.143:8000，而非127.0.0.1）
+                    const shopApiUrl = `${url1}/api/shops/${currentShopId}/`;
+                    console.log("=== 步骤2：发起店铺接口请求 ===");
+                    console.log("请求地址：", shopApiUrl);
+                    console.log("请求时间：", new Date().toLocaleString());
+
+                    // 关键修改：关闭 withCredentials，删除可能冲突的请求头
+                    axios({
+                        url: shopApiUrl,
+                        method: "GET",
+                        timeout: 15000,
+                        withCredentials: false, // 改为 false，解决与后端 * 通配符的冲突
+                        headers: {
+                            "Accept": "application/json" // 仅保留必要的Accept头，避免多余配置
+                        }
+                    }).then(response => {
+                        // 存储完整店铺信息
+                        shopFullInfo = response.data;
+                        console.log("=== 步骤2：店铺接口请求成功 ===");
+                        console.log("接口返回状态码：", response.status);
+                        console.log("接口返回完整数据：", shopFullInfo); // 打印全部店铺信息
+                        console.log("=== 店铺关键信息提取 ===");
+                        console.log("店铺名称：", shopFullInfo.name || "未知");
+                        console.log("店铺地址：", shopFullInfo.address || "未知");
+                        console.log("店铺经纬度：", `经度=${shopFullInfo.longitude || "未知"}, 纬度=${shopFullInfo.latitude || "未知"}`);
+                        console.log("开店时间：", shopFullInfo.open_time || "未知");
+                        console.log("客服电话：", shopFullInfo.service_phone || "未知");
+                        console.log("营业时间：", shopFullInfo.business_hours || "未知");
+
+                        // 校验经纬度有效性
+                        if (!shopFullInfo.longitude || !shopFullInfo.latitude || isNaN(shopFullInfo.longitude) || isNaN(shopFullInfo.latitude)) {
+                            const errMsg = "店铺接口返回数据中无有效经纬度";
+                            console.error("=== 步骤2：经纬度校验失败 ===");
+                            console.error(errMsg);
+                            reject(new Error(errMsg));
+                            return;
+                        }
+                        // 存储经纬度
+                        shopLatLng = {
+                            longitude: shopFullInfo.longitude.toString(),
+                            latitude: shopFullInfo.latitude.toString()
+                        };
+                        console.log(shopFullInfo, '标记');
+
+                        if (shopFullInfo.photo) {
+                            // 如果接口返回的头像地址需要拼接域名，用你已有的 formatImageUrl 函数
+                            console.log('标记2', shopFullInfo.photo);
+                            shopavatar.src = formatImageUrl(shopFullInfo.photo);
+                        } else {
+                            // 方式2：自定义默认头像（接口无头像时使用）
+                            shopavatar.src = "../img/个人信息.png";
+                        }
+                        // 渲染店铺信息到页面
+                        renderShopInfo(shopFullInfo);
+                        resolve();
+                    }).catch(error => {
+                        let errMsg = "调用店铺接口失败：";
+                        console.error("=== 步骤2：店铺接口请求异常 ===");
+                        console.error("错误类型：", error.code);
+                        console.error("错误信息：", error.message);
+                        // 细分错误原因，便于排查
+                        if (error.code === "ERR_CONNECTION_REFUSED") {
+                            errMsg += "无法连接店铺服务器（检查接口地址是否正确：26.37.246.143:8000）";
+                        } else if (error.response && error.response.status === 404) {
+                            errMsg += `店铺不存在（shop_id：${currentShopId}），请确认shop_id在后端有效`;
+                        } else if (error.code === "ECONNABORTED") {
+                            errMsg += "请求超时（后端响应过慢，可延长timeout时间）";
+                        } else if (error.response && error.response.status === 403) {
+                            errMsg += "无权限访问（该接口可能需要登录，需在请求头添加token）";
+                        } else {
+                            errMsg += error.message;
+                        }
+                        reject(new Error(errMsg));
+                    });
+                });
+            }
+            // 3. 新增：渲染店铺信息到页面
+            function renderShopInfo(shopInfo) {
+                // 渲染店铺地址
+                // $("#shopAddress").text(shopInfo.address || "未知地址").find(".loading").remove();
+                // // 渲染店铺详细信息（开店时间、电话等）
+                // $("#shopDetailInfo p:contains('开店时间：')").html(`<strong>开店时间：</strong>${shopInfo.open_time || "未知"}`).find(".loading").remove();
+                // $("#shopDetailInfo p:contains('客服电话：')").html(`<strong>客服电话：</strong>${shopInfo.service_phone || "未知"}`).find(".loading").remove();
+                // $("#shopDetailInfo p:contains('营业时间：')").html(`<strong>营业时间：</strong>${shopInfo.business_hours || "未知"}`).find(".loading").remove();
+                // $("#shopDetailInfo p:contains('店铺评分：')").html(`<strong>店铺评分：</strong>${shopInfo.rating || "4.7"}分`).find(".loading").remove();
+
+                // const shopAvatarUrl = shopInfo.avatar || "https://picsum.photos/100/100?random=5";
+                // // 2. 替换头像图片的src和alt（alt用店铺名，更友好）
+                // $(".shop-avatar")
+                //     .attr("src", shopAvatarUrl) // 动态头像地址
+                //     .attr("alt", `${shopInfo.name || "店铺"}的头像`);
+
+                // 渲染店铺名称
+                $(".shop-name").text(shopInfo.name || "未知店铺").find(".loading").remove();
+                // 渲染店铺认证标签
+                $(".shop-info .badge").parent().html(
+                    `<span class="badge badge-primary mr-2">${shopInfo.certification || "品牌认证"}</span><span class="badge badge-success">${shopInfo.level || "金牌卖家"}</span>`
+                ).find(".loading").remove();
+            }
+
+            // 4. 调用商品接口（不变，仅调整顺序）
+            function fetchProductData() {
+                showLoading(true);
+                $("#locationBtn").addClass("btn-loading").text("加载中...");
+                console.log("=== 步骤3：发起商品接口请求 ===");
+                console.log("请求地址：", config.productListApi);
+
+                axios({
+                    url: config.productListApi,
+                    method: "GET",
+                    timeout: 10000
+                })
+                    .then(response => {
+                        showLoading(false);
+                        const productList = response.data.results;
+                        console.log("=== 步骤3：商品接口请求成功 ===");
+                        console.log("返回商品数量：", productList.length);
+
+                        if (!Array.isArray(productList) || productList.length === 0) {
+                            showError("接口未返回有效商品数据");
+                            resetLocationBtn();
+                            return;
+                        }
+
+                        // 匹配目标商品
+                        let targetProduct = null;
+                        if (targetProductId) {
+                            targetProduct = productList.find(item => item.product_id === targetProductId);
+                            if (!targetProduct) {
+                                showError(`未找到ID为【${targetProductId}】的商品，将显示第一个商品`);
+                                targetProduct = productList[0];
+                            }
+                        } else {
+                            targetProduct = productList[0];
+                        }
+                        currentProduct = targetProduct;
+                        console.log("=== 步骤3：匹配目标商品 ===");
+                        console.log("目标商品信息：", currentProduct);
+
+                        // 先调用店铺接口，再渲染商品
+                        fetchShopLatLng()
+                            .then(() => {
+                                renderProductDetail(currentProduct);
+                                resetLocationBtn();
+                                console.log("=== 所有步骤完成 ===");
+                                console.log("最终用于导航的经纬度：", shopLatLng);
+                                console.log("最终展示的店铺信息：", shopFullInfo);
+                            })
+                            .catch(shopErr => {
+                                showError(shopErr.message);
+                                renderProductDetail(currentProduct);
+                                resetLocationBtn();
+                                // 兜底默认经纬度
+                                shopLatLng = { longitude: "114.658721", latitude: "33.630042" };
+                                console.log("=== 店铺接口失败后兜底 ===");
+                                console.log("使用默认经纬度：", shopLatLng);
+                            });
+                    })
+                    .catch(error => {
+                        showLoading(false);
+                        resetLocationBtn();
+                        let errorMsg = "商品数据加载失败：";
+                        if (error.code === "ERR_CONNECTION_REFUSED") {
+                            errorMsg += `无法连接服务器（${config.productListApi}）`;
+                        } else if (error.response && error.response.status === 404) {
+                            errorMsg += `接口地址不存在（${config.productListApi}）`;
+                        } else {
+                            errorMsg += error.message;
+                        }
+                        showError(errorMsg);
+                        console.error("=== 商品接口请求失败 ===");
+                        console.error(errorMsg);
+                        setTimeout(() => window.location.href = config.listPage, 3000);
+                    });
+            }
+
+            // 5. 渲染商品详情（不变）
+            function renderProductDetail(product) {
+                $(".product-title").text(product.name || "未命名商品").find(".loading").remove();
+                $(".product-price").text(`¥${product.price}`).find(".loading").remove();
+
+                const productImg = formatImageUrl(product.image) ? formatImageUrl(product.image) : config.defaultProductImg;
+                $(".product-image").attr("src", productImg).attr("alt", product.name);
+
+                const category = product.category || "未分类";
+                // 生成单个分类标签（沿用原有.tag样式）
+                const categoryHtml = `<span class="tag">${category}</span>`;
+                // 渲染到页面并移除加载状态
+                $(".mb-3").html(categoryHtml).find(".loading").remove();
+
+                $(".shop-info .rating .text-muted").text("4.7分").find(".loading").remove();
+                $("h5:contains('商品分类')").next("div").html(
+                    `<span class="badge badge-secondary mr-2 mb-2">${product.category || "未分类"}</span>`
+                ).find(".loading").remove();
+                const $descParagraph = $(".detail-card:has(.detail-title:contains('商品介绍')) p").eq(0);
+                // 从接口获取详情，默认显示"暂无详细介绍"
+                const descText = product.description ? product.description.trim() : "暂无详细介绍";
+
+                // 先移除加载状态，再填充文本（避免加载中文字残留）
+                $descParagraph.find(".loading").remove(); // 移除"加载中..."
+                $descParagraph.text(descText);
+
+                $(".detail-title small").text(`(2条)`).find(".loading").remove();
+                $(".media").eq(0).find("h5").text("王先生").find(".loading").remove();
+                $(".media").eq(0).find(".text-muted").eq(0).text("2025-10-01").find(".loading").remove();
+                $(".media").eq(0).find("p").text("商品质量很好，符合描述！").find(".loading").remove();
+
+                $(".media").eq(1).find("h5").text("李女士").find(".loading").remove();
+                $(".media").eq(1).find(".text-muted").eq(0).text("2025-09-28").find(".loading").remove();
+                $(".media").eq(1).find("p").text("物流很快，包装完好！").find(".loading").remove();
+            }
+
+            // 6. 导航按钮事件（不变）
+            function bindLocationBtnClick() {
+
+                $("#locationBtn").click(function () {
+                    if (!shopLatLng.longitude || !shopLatLng.latitude || !currentShopId) {
+                        showError("未获取到有效店铺经纬度，无法导航");
+                        return;
+                    }
+
+                    const urlParams = new URLSearchParams();
+                    urlParams.append("longitude", shopLatLng.longitude);
+                    urlParams.append("latitude", shopLatLng.latitude);
+                    urlParams.append("product_name", currentProduct.name || "未知商品");
+                    urlParams.append("shop_name", shopFullInfo?.name || currentProduct.shop_name || "未知店铺");
+                    urlParams.append("shop_address", shopFullInfo?.address || $("#shopAddress").text() || "未知地址");
+                    urlParams.append("shop_id", currentShopId);
+
+                    const jumpUrl = `${config.locationPage}?${urlParams.toString()}`;
+                    console.log("=== 导航跳转 ===");
+                    console.log("跳转URL：", jumpUrl);
+                    window.location.href = jumpUrl;
+                });
+            }
+            // 新增：绑定商家名称点击跳转事件
+            function bindShopNameClick() {
+                const $shopNameLink = $("#shopNameLink");
+
+                $shopNameLink.click(function () {
+                    // 1. 校验 shop_id 是否有效
+                    if (!currentShopId || currentShopId === "undefined" || currentShopId.trim() === "") {
+                        showError("未获取到有效店铺ID，无法跳转");
+                        return;
+                    }
+
+                    // 2. 定义新页面地址（替换为你的商家详情页实际路径，比如 shop-detail.html）
+                    const shopDetailPage = "shop-detail.html";
+                    // 3. 拼接带 shop_id 的跳转URL
+                    const jumpUrl = `${shopDetailPage}?shop_id=${encodeURIComponent(currentShopId)}`;
+
+                    // 4. 打印日志（便于调试）
+                    console.log("=== 商家名称跳转 ===");
+                    console.log("跳转URL：", jumpUrl);
+                    console.log("携带的shop_id：", currentShopId);
+
+                    // 5. 跳转新页面（_blank 打开新标签，_self 在当前标签打开，按需选择）
+                    window.open(jumpUrl, "_blank");
+                    // 若要在当前标签跳转：window.location.href = jumpUrl;
+                });
+
+                // 可选：加载完店铺名称后，添加 hover 下划线效果
+                $(document).on("mouseenter", "#shopNameLink", function () {
+                    $(this).css("text-decoration", "underline");
+                });
+                $(document).on("mouseleave", "#shopNameLink", function () {
+                    $(this).css("text-decoration", "none");
+                });
+            }
+            function bindNewFunctionBtnClick() {
+                const $btn = $("#newFunctionBtn"); // 缓存按钮元素，避免重复查找
+                let isProcessing = false; // 防止重复请求的锁
+
+                $btn.click(function () {
+                    // 防止重复点击（双重保险：锁 + 按钮禁用状态）
+                    if (isProcessing || $btn.hasClass("btn-loading")) {
+                        return;
+                    }
+
+                    // 1. 立即设置加载状态
+                    isProcessing = true;
+                    $btn.addClass("btn-loading").prop("disabled", true).html(
+                        '<i class="fas fa-spinner fa-spin mr-2"></i>处理中...'
+                    );
+
+                    // 2. 登录校验（无token则提示）
+                    const token = localStorage.getItem('token');
+                    if (!token) {
+                        alert('请先登录您的账号');
+                        // 恢复状态
+                        isProcessing = false;
+                        $btn.removeClass("btn-loading").prop("disabled", false).html(
+                            '<i class="fas fa-heart mr-2"></i>收藏'
+                        );
+                        return;
+                    }
+
+                    // 3. 调用收藏接口
+                    axios({
+                        url: `${url1}/api/users/favorites/`,
+                        method: "POST",
+                        data: { product: targetProductId },
+                        headers: {
+                            "Content-Type": "application/json",
+                            Authorization: `Bearer ${token}`
+                        },
+                        timeout: 10000
+                    }).then(response => {
+                        console.log("收藏成功：", response.data);
+                        alert("收藏成功！");
+                        // 切换为已收藏样式
+                        $btn.html('<i class="fas fa-heart text-danger mr-2"></i>已收藏');
+                    }).catch(error => {
+                        const statusCode = error.response?.status;
+                        const errorMsg = error.message || "网络异常";
+
+                        // 只有 500 错误时尝试取消收藏（建议后端改为 409 Conflict）
+                        if (statusCode === 500) {
+                            console.log('检测到已收藏，尝试取消收藏...');
+                            // 取消收藏请求（如果后端必须用 data 传参，可改回 data 格式）
+                            return axios({
+                                url: `${url1}/api/products/favorites/`,
+                                method: "DELETE",
+                                data: { favorite_id: targetProductId }, // 按后端实际要求调整
+                                headers: {
+                                    "Content-Type": "application/json",
+                                    Authorization: `Bearer ${token}`
+                                },
+                                timeout: 5000
+                            }).then(result2 => {
+                                console.log("取消收藏成功：", result2.data);
+                                alert("已取消收藏！");
+                                // 切换为未收藏样式
+                                $btn.html('<i class="fas fa-heart mr-2"></i>收藏');
+                                return Promise.resolve(); // 跳过外层错误提示
+                            }).catch(error2 => {
+                                console.error("取消收藏失败：", error2);
+                                showError("取消收藏失败：" + (error2.message || "网络异常"));
+                                // 恢复为初始样式（未收藏）
+                                $btn.html('<i class="fas fa-heart mr-2"></i>收藏');
+                                return Promise.reject(error2);
+                            });
+                        }
+
+                        // 非 500 错误处理
+                        console.error("收藏失败：", error);
+                        showError("收藏失败：" + errorMsg);
+                        // 恢复为初始样式（未收藏）
+                        $btn.html('<i class="fas fa-heart mr-2"></i>收藏');
+                        return Promise.reject(error);
+                    }).finally(() => {
+                        // 无论成功/失败，都恢复按钮状态
+                        isProcessing = false;
+                        $btn.removeClass("btn-loading").prop("disabled", false);
+                    });
+                });
+            }
+            // 辅助函数（不变）
+            function resetLocationBtn() {
+                $("#locationBtn")
+                    .removeClass("btn-loading")
+                    .html('<i class="fas fa-map-marker-alt mr-2"></i>查看商家位置（导航）')
+                    .prop("disabled", false);
+            }
+            function showLoading(show) {
+                show ? $(".loading").show() : $(".loading").fadeOut(300);
+            }
+            function showError(message) {
+                const errorEl = $(".error-message");
+                errorEl.text(message).show();
+                errorEl[0].scrollIntoView({ behavior: "smooth" });
+            }
+
+            // 初始化
+            bindNewFunctionBtnClick()
+            bindLocationBtnClick();
+            fetchProductData();
+            bindShopNameClick();
+        });
+    </script>
+</body>
+
+</html>

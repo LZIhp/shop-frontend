@@ -1,0 +1,725 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <title>潮流男装 - 商家定位</title>
+    <link href="https://cdn.bootcdn.net/ajax/libs/font-awesome/5.15.4/css/all.min.css" rel="stylesheet">
+    <script
+        src="https://webapi.amap.com/maps?v=2.0&key=ca9ae13986c3ccdc42ec60275f9f33b6&plugin=AMap.Convertor"></script>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body,
+        html {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+        }
+
+        #locationMap {
+            width: 100vw;
+            height: 100vh;
+            border: none;
+        }
+
+        #locationStatus {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            padding: 8px 16px;
+            background: rgba(255, 255, 255, 0.9);
+            border-radius: 4px;
+            font-size: 14px;
+            z-index: 100;
+            display: none;
+        }
+
+        .info-window-nav-btn {
+            display: inline-block;
+            margin-top: 8px;
+            padding: 4px 10px;
+            background: #2196f3;
+            color: white;
+            border-radius: 4px;
+            font-size: 0.9rem;
+            cursor: pointer;
+            text-decoration: none;
+        }
+
+        #errorTip {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            padding: 15px;
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            border-radius: 6px;
+            z-index: 200;
+            display: none;
+        }
+
+        #closeError {
+            position: absolute;
+            top: 8px;
+            right: 12px;
+            cursor: pointer;
+        }
+
+        #loadingTip {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            padding: 15px 20px;
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            border-radius: 6px;
+            z-index: 200;
+            display: none;
+        }
+
+        .map-select-modal {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: white;
+            border-radius: 16px 16px 0 0;
+            padding: 20px;
+            z-index: 300;
+            display: none;
+            box-shadow: 0 -2px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .map-select-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .map-btn-group {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .map-btn {
+            flex: 1;
+            padding: 12px 0;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            cursor: pointer;
+        }
+
+        .gaode-btn {
+            background: #2196f3;
+            color: white;
+        }
+
+        .baidu-btn {
+            background: #3083ff;
+            color: white;
+        }
+
+        .cancel-btn {
+            width: 100%;
+            padding: 12px 0;
+            background: #f5f5f5;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+
+        /* 未安装APP提示弹窗 */
+        .no-app-tip {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            padding: 20px;
+            background: white;
+            border-radius: 10px;
+            z-index: 400;
+            display: none;
+            text-align: center;
+            width: 80%;
+            max-width: 300px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+        }
+
+        .no-app-tip i {
+            font-size: 40px;
+            color: #ff6b6b;
+            margin-bottom: 15px;
+            display: block;
+        }
+
+        .no-app-tip p {
+            font-size: 16px;
+            color: #333;
+            margin-bottom: 20px;
+            line-height: 1.5;
+        }
+
+        .no-app-tip .btn-group {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        .no-app-tip-btn {
+            padding: 10px 20px;
+            background: #2196f3;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+
+        .no-app-tip-btn.cancel {
+            background: #f5f5f5;
+            color: #333;
+        }
+
+        /* 微信提醒 */
+        .wechat-guide-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.7);
+            z-index: 9999;
+            display: none;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .wechat-guide-modal .modal-content {
+            background-color: white;
+            padding: 25px;
+            border-radius: 10px;
+            text-align: center;
+            width: 80%;
+            max-width: 350px;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="locationMap"></div>
+    <div id="locationStatus"></div>
+    <div id="errorTip">
+        <span id="closeError">&times;</span>
+        <p id="errorMsg"></p>
+    </div>
+    <div id="loadingTip">
+        <i class="fas fa-spinner fa-spin mr-2"></i> 加载店铺信息中...
+    </div>
+    <div class="map-select-modal" id="mapSelectModal">
+        <div class="map-select-title">选择地图APP导航</div>
+        <div class="map-btn-group">
+            <button class="map-btn gaode-btn" id="gaodeMapBtn">
+                <i class="fas fa-map-marker-alt"></i> 高德地图
+            </button>
+            <button class="map-btn baidu-btn" id="baiduMapBtn">
+                <i class="fas fa-map"></i> 百度地图
+            </button>
+        </div>
+        <button class="cancel-btn" id="cancelMapBtn">取消</button>
+    </div>
+    <!-- 微信引导弹窗 (仅提示，无跳转按钮) -->
+    <div class="wechat-guide-modal" id="wechatGuideModal">
+        <div class="modal-content">
+            <i class="fas fa-info-circle"
+                style="font-size: 24px; color: #2196f3; margin-bottom: 15px; display: block;"></i>
+            <h3 style="margin-top: 0; color: #333;">提示</h3>
+            <p style="color: #666; line-height: 1.6;">
+                请点击右上角 <i class="fas fa-ellipsis-v" style="color: #000;"></i> 图标，<br>
+                选择 <strong>"在浏览器中打开"</strong>，<br>
+                即可使用地图导航功能。
+            </p>
+            <button class="modal-btn" id="closeWechatGuideBtn"
+                style="margin-top: 20px; padding: 10px 25px; background: #2196f3; color: white; border: none; border-radius: 5px; cursor: pointer;">
+                我知道了
+            </button>
+        </div>
+    </div>
+
+    <!-- 未安装APP提示弹窗 (已优化) -->
+    <div class="no-app-tip" id="noAppTip">
+        <i class="fas fa-exclamation-circle"></i>
+        <p id="noAppTipMsg">无法唤起地图APP</p>
+        <div class="btn-group">
+            <button class="no-app-tip-btn" id="openWebMapBtn">打开网页版地图</button>
+            <button class="no-app-tip-btn cancel" id="closeNoAppTip">取消</button>
+        </div>
+    </div>
+
+    <script type="module">
+        import url1 from '../peizhi/config.js';
+        let mapInstance = null;
+        const LOCAL_STORAGE_KEY = 'merchantLocationData';
+        let isLocating = false;
+        let currentLatLng = null;
+        let shopInfo = null;
+        const IS_MOBILE = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent) && !/Windows Phone/i.test(navigator.userAgent);
+        const IS_IOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
+        const IS_ANDROID = /Android|HarmonyOS/i.test(navigator.userAgent);
+        const map唤起Status = { is唤起中: false, 唤起时间: 0 };
+        const SHOP_API_BASE = `${url1}/api/shops/`;
+
+        // DOM元素
+        const noAppTip = document.getElementById('noAppTip');
+        const noAppTipMsg = document.getElementById('noAppTipMsg');
+        const closeNoAppTip = document.getElementById('closeNoAppTip'); // 取消按钮
+
+        // 关闭错误提示
+        document.getElementById('closeError').addEventListener('click', () => {
+            document.getElementById('errorTip').style.display = 'none';
+        });
+
+        // 关闭未安装APP提示 (取消按钮)
+        closeNoAppTip.addEventListener('click', () => {
+            noAppTip.style.display = 'none';
+        });
+
+        // 点击弹窗外部关闭
+        noAppTip.addEventListener('click', (e) => {
+            if (e.target === noAppTip) {
+                noAppTip.style.display = 'none';
+            }
+        });
+
+        // 初始化流程
+        function init() {
+            showLoading(true);
+            const shopId = getShopIdFromUrl();
+            if (!shopId) {
+                showError('未从URL获取到店铺ID，无法加载店铺信息');
+                showLoading(false);
+                return;
+            }
+            fetchShopInfo(shopId)
+                .then(() => {
+                    initMap();
+                    showLoading(false);
+                })
+                .catch(err => {
+                    showError(err.message);
+                    showLoading(false);
+                    initMap();
+                });
+        }
+
+        if (window.AMap) init();
+        else document.addEventListener('AMap.Load', init);
+
+        /**
+         * 从URL提取shop_id
+         */
+        function getShopIdFromUrl() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const shopId = urlParams.get('shop_id');
+            if (!shopId || shopId.trim() === '') {
+                console.error('URL中未携带shop_id参数');
+                return null;
+            }
+            console.log('从URL提取的shop_id：', shopId);
+            return shopId;
+        }
+
+        /**
+         * 调用店铺接口获取信息
+         */
+        function fetchShopInfo(shopId) {
+            return new Promise((resolve, reject) => {
+                const shopApiUrl = `${SHOP_API_BASE}${shopId}/`;
+                console.log('请求店铺接口地址：', shopApiUrl);
+
+                axios({
+                    url: shopApiUrl,
+                    method: 'GET',
+                    timeout: 10000,
+                    withCredentials: false,
+                    headers: {
+                        'Accept': 'application/json'
+                    }
+                })
+                    .then(response => {
+                        shopInfo = response.data;
+                        console.log('店铺接口返回完整数据：', shopInfo);
+
+                        if (!shopInfo.longitude || !shopInfo.latitude || isNaN(shopInfo.longitude) || isNaN(shopInfo.latitude)) {
+                            reject(new Error('店铺接口未返回有效经纬度，无法定位'));
+                            return;
+                        }
+                        if (!shopInfo.name || shopInfo.name.trim() === '') {
+                            reject(new Error('店铺接口未返回有效店铺名称'));
+                            return;
+                        }
+                        if (!shopInfo.address || shopInfo.address.trim() === '') {
+                            reject(new Error('店铺接口未返回有效店铺地址'));
+                            return;
+                        }
+
+                        currentLatLng = {
+                            lat: shopInfo.latitude.toString(),
+                            lng: shopInfo.longitude.toString()
+                        };
+                        console.log('动态获取的店铺经纬度：', currentLatLng);
+                        resolve();
+                    })
+                    .catch(error => {
+                        let errMsg = '调用店铺接口失败：';
+                        if (error.code === 'ERR_CONNECTION_REFUSED') {
+                            errMsg += '无法连接服务器，请检查接口地址是否正确';
+                        } else if (error.response && error.response.status === 404) {
+                            errMsg += `店铺不存在（shop_id：${shopId}）`;
+                        } else if (error.code === 'ECONNABORTED') {
+                            errMsg += '请求超时，请检查网络或重试';
+                        } else {
+                            errMsg += error.message;
+                        }
+                        console.error(errMsg);
+                        reject(new Error(errMsg));
+                    });
+            });
+        }
+
+        /**
+         * 初始化地图
+         */
+        function initMap() {
+            const statusEl = document.getElementById('locationStatus');
+
+            if (currentLatLng && shopInfo) {
+                renderMap(currentLatLng.lng, currentLatLng.lat);
+                statusEl.textContent = `已加载【${shopInfo.name}】定位，点击标记导航`;
+                statusEl.style.display = 'block';
+                statusEl.style.color = '#2e7d32';
+            } else {
+                loadLocalLocationData();
+            }
+
+            if (IS_MOBILE) {
+                bindMobileMapSelectEvent();
+            } else {
+                statusEl.textContent = '仅支持移动端地图APP导航';
+                statusEl.style.display = 'block';
+                statusEl.style.color = '#666';
+            }
+        }
+
+        /**
+         * 绑定移动端弹窗事件
+         */
+        function bindMobileMapSelectEvent() {
+            const modal = document.getElementById('mapSelectModal');
+            document.getElementById('gaodeMapBtn').addEventListener('click', () => {
+                modal.style.display = 'none';
+                唤起地图APP('gaode');
+            });
+            document.getElementById('baiduMapBtn').addEventListener('click', () => {
+                modal.style.display = 'none';
+                唤起地图APP('baidu');
+            });
+            document.getElementById('cancelMapBtn').addEventListener('click', () => {
+                modal.style.display = 'none';
+            });
+            modal.addEventListener('click', (e) => {
+                if (e.target === modal) modal.style.display = 'none';
+            });
+        }
+
+        /**
+         * 核心功能：唤起地图APP。
+         * 在微信中，仅显示引导提示；在其他浏览器，尝试唤起并检测结果。
+         */
+        async function 唤起地图APP(mapType) {
+            const now = Date.now();
+            if (map唤起Status.is唤起中 || (now - map唤起Status.唤起时间) < 2000) return;
+
+            map唤起Status.is唤起中 = true;
+            map唤起Status.唤起时间 = now;
+
+            if (!currentLatLng || !shopInfo) {
+                showError('定位数据异常，无法唤起地图');
+                map唤起Status.is唤起中 = false;
+                return;
+            }
+
+            // 1. 优先检测是否为微信环境
+            if (isWeixinBrowser()) {
+                showWechatGuideModal();
+                map唤起Status.is唤起中 = false;
+                return;
+            }
+
+            // --- 以下为非微信浏览器的逻辑 ---
+
+            const shopName = encodeURIComponent(shopInfo.name);
+            const shopAddr = encodeURIComponent(shopInfo.address);
+            const { lat, lng } = currentLatLng;
+            let appUrl = '';
+            let webUrl = '';
+            const mapName = mapType === 'baidu' ? '百度地图' : '高德地图';
+
+            switch (mapType) {
+                case 'gaode':
+                    appUrl = IS_IOS
+                        ? `iosamap://navi?sourceApplication=潮流男装&lat=${lat}&lon=${lng}&dev=0&poiname=${shopName}&addr=${shopAddr}`
+                        : `androidamap://navi?sourceApplication=潮流男装&lat=${lat}&lon=${lng}&dev=0&poiname=${shopName}&addr=${shopAddr}`;
+                    webUrl = `https://uri.amap.com/marker?position=${lng},${lat}&name=${shopName}&coordinate=gaode&callnative=0`;
+                    break;
+                case 'baidu':
+                    appUrl = `baidumap://map/marker?location=${lat},${lng}&title=${shopName}&content=${shopAddr}&src=潮流男装`;
+                    webUrl = `https://api.map.baidu.com/marker?location=${lat},${lng}&title=${shopName}&content=${shopAddr}&output=html&src=webapp.baidu.openAPIdemo`;
+                    break;
+                default:
+                    showError('不支持的地图类型');
+                    map唤起Status.is唤起中 = false;
+                    return;
+            }
+
+            try {
+                window.location.href = appUrl;
+            } catch (e) {
+                console.error(`${mapName} App唤起失败（立即异常）:`, e);
+                showFallbackOption(mapName, webUrl);
+                map唤起Status.is唤起中 = false;
+                return;
+            }
+
+            // 延时检测唤起结果
+            let is唤起成功 = false;
+            const checkDelay = IS_IOS ? 3000 : 4000;
+
+            const visibilityChangeHandler = () => {
+                if (document.hidden || document.webkitHidden) {
+                    is唤起成功 = true;
+                }
+            };
+            document.addEventListener('visibilitychange', visibilityChangeHandler);
+            document.addEventListener('webkitvisibilitychange', visibilityChangeHandler);
+
+            setTimeout(() => {
+                document.removeEventListener('visibilitychange', visibilityChangeHandler);
+                document.removeEventListener('webkitvisibilitychange', visibilityChangeHandler);
+
+                if (!is唤起成功) {
+                    showFallbackOption(mapName, webUrl);
+                }
+
+                map唤起Status.is唤起中 = false;
+            }, checkDelay);
+        }
+
+        /**
+         * 辅助函数：检测是否为微信浏览器
+         */
+        function isWeixinBrowser() {
+            const ua = navigator.userAgent.toLowerCase();
+            return ua.match(/MicroMessenger/i) == "micromessenger";
+        }
+
+        /**
+         * 辅助函数：显示微信环境下的引导弹窗
+         */
+        function showWechatGuideModal() {
+            document.getElementById('wechatGuideModal').style.display = 'flex';
+        }
+
+        /**
+         * 辅助函数：显示唤起失败的备用方案（打开Web版地图）
+         */
+        function showFallbackOption(mapName, webUrl) {
+            const tipMsg = `无法唤起${mapName}APP，请尝试使用网页版。`;
+            document.getElementById('noAppTipMsg').textContent = tipMsg;
+
+            // 给“打开网页版地图”按钮绑定事件
+            document.getElementById('openWebMapBtn').onclick = function () {
+                window.location.href = webUrl;
+                document.getElementById('noAppTip').style.display = 'none';
+            };
+
+            document.getElementById('noAppTip').style.display = 'block';
+        }
+
+        // 为微信引导弹窗的“我知道了”按钮绑定关闭事件
+        document.getElementById('closeWechatGuideBtn').addEventListener('click', () => {
+            document.getElementById('wechatGuideModal').style.display = 'none';
+        });
+
+        /**
+         * 地图标记点击导航
+         */
+        function mapMarkerNavClick() {
+            if (!currentLatLng || !shopInfo) {
+                showError('未获取到店铺定位数据，无法导航');
+                return;
+            }
+
+            if (IS_MOBILE) {
+                document.querySelector('.map-select-title').textContent = `选择地图APP导航到【${shopInfo.name}】`;
+                document.getElementById('mapSelectModal').style.display = 'block';
+            } else {
+                showError('仅支持移动端地图APP导航');
+            }
+        }
+
+        /**
+         * 读取本地定位数据（兜底逻辑）
+         */
+        function loadLocalLocationData() {
+            const statusEl = document.getElementById('locationStatus');
+            const storedData = localStorage.getItem(LOCAL_STORAGE_KEY);
+
+            if (storedData) {
+                try {
+                    const { latitude, longitude, accuracy } = JSON.parse(storedData);
+                    if (!latitude || !longitude || latitude < -90 || latitude > 90 || longitude < -180 || longitude > 180) {
+                        throw new Error('经纬度无效');
+                    }
+
+                    currentLatLng = { lat: latitude, lng: longitude };
+                    renderMap(longitude, latitude, accuracy);
+                    statusEl.textContent = '已加载本地定位，点击标记导航';
+                    statusEl.style.display = 'block';
+                    statusEl.style.color = '#2e7d32';
+
+                } catch (error) {
+                    localStorage.removeItem(LOCAL_STORAGE_KEY);
+                    statusEl.textContent = '本地数据无效，请检查店铺信息';
+                    statusEl.style.display = 'block';
+                    statusEl.style.color = '#c62828';
+                }
+            } else {
+                statusEl.textContent = '未找到定位数据，请检查店铺接口';
+                statusEl.style.display = 'block';
+                statusEl.style.color = '#666';
+            }
+        }
+
+        /**
+         * 渲染地图
+         */
+        function renderMap(lng, lat, accuracy) {
+            const mapContainer = document.getElementById('locationMap');
+            let gcjCoord = new AMap.LngLat(lng, lat);
+
+            if (window.AMap.Convertor) {
+                try {
+                    gcjCoord = AMap.Convertor.transform(gcjCoord, 'gps', 'gcj02');
+                } catch (e) {
+                    console.warn('坐标转换失败，使用原始坐标：', e);
+                }
+            }
+
+            if (mapInstance) {
+                mapInstance.setCenter(gcjCoord);
+                mapInstance.remove(mapInstance.getAllOverlays());
+            } else {
+                mapInstance = new AMap.Map(mapContainer, {
+                    center: gcjCoord,
+                    zoom: accuracy ? (accuracy <= 10 ? 18 : (accuracy <= 50 ? 17 : 16)) : 16,
+                    resizeEnable: true,
+                    dragEnable: true,
+                    zoomEnable: true,
+                    scrollWheel: true,
+                    controls: []
+                });
+            }
+
+            const marker = new AMap.Marker({
+                position: gcjCoord,
+                title: shopInfo ? `点击导航到${shopInfo.name}` : '点击导航',
+                icon: new AMap.Icon({
+                    size: new AMap.Size(40, 40),
+                    image: 'https://webapi.amap.com/theme/v1.3/markers/n/mark_b.png',
+                    imageSize: new AMap.Size(40, 40)
+                }),
+                animation: 'AMAP_ANIMATION_DROP',
+                cursor: 'pointer'
+            });
+            marker.setMap(mapInstance);
+            marker.on('click', mapMarkerNavClick);
+
+            if (accuracy) {
+                const circle = new AMap.Circle({
+                    center: gcjCoord,
+                    radius: Number(accuracy),
+                    strokeColor: '#2196f3',
+                    strokeOpacity: 0.6,
+                    strokeWeight: 2,
+                    fillColor: '#2196f3',
+                    fillOpacity: 0.1
+                });
+                circle.setMap(mapInstance);
+            }
+
+            const infoWindowContent = shopInfo
+                ? `<div style="padding: 12px; min-width: 200px;">
+                    <h5 style="margin-bottom: 6px;">${shopInfo.name}</h5>
+                    <p style="font-size: 13px; color: #666;">地址：${shopInfo.address}</p>
+                    <a href="javascript:;" class="info-window-nav-btn" onclick="mapMarkerNavClick()">
+                        <i class="fas fa-directions mr-1"></i> 去这里
+                    </a>
+                  </div>`
+                : `<div style="padding: 12px; min-width: 200px;">
+                    <h5 style="margin-bottom: 6px;">未知店铺</h5>
+                    <p style="font-size: 13px; color: #666;">地址：未知</p>
+                    <a href="javascript:;" class="info-window-nav-btn" onclick="mapMarkerNavClick()">
+                        <i class="fas fa-directions mr-1"></i> 去这里
+                    </a>
+                  </div>`;
+
+            const infoWindow = new AMap.InfoWindow({
+                content: infoWindowContent,
+                offset: new AMap.Pixel(0, -40)
+            });
+            infoWindow.open(mapInstance, gcjCoord);
+            marker.on('click', () => infoWindow.open(mapInstance, gcjCoord));
+        }
+
+        /**
+         * 显示/隐藏加载中提示
+         */
+        function showLoading(show) {
+            document.getElementById('loadingTip').style.display = show ? 'block' : 'none';
+        }
+
+        /**
+         * 错误提示函数
+         */
+        function showError(msg) {
+            document.getElementById('errorMsg').textContent = msg;
+            document.getElementById('errorTip').style.display = 'block';
+        }
+
+        // 暴露导航函数到全局
+        window.mapMarkerNavClick = mapMarkerNavClick;
+    </script>
+</body>
+
+</html>

@@ -1,0 +1,519 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>商品详情卡片 - 搜索版</title>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --medical-blue: #1a5c9e;
+            --health-green: #28a745;
+            --favorite-red: #dc3545;
+        }
+
+        body {
+            background: #f8f9fa;
+            min-height: 100vh;
+            font-family: '微软雅黑', sans-serif;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 30px auto;
+            padding: 30px;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.1);
+        }
+
+        /* 搜索框样式 */
+        .search-box {
+            margin: 25px 0;
+        }
+
+        #searchInput {
+            width: 100%;
+            padding: 12px 20px;
+            border: 2px solid var(--medical-blue);
+            border-radius: 30px;
+            font-size: 16px;
+            outline: none;
+        }
+
+        /* 分类标签样式 */
+        .tabs {
+            margin: 20px 0;
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .tab {
+            padding: 10px 25px;
+            background: #e3f2fd;
+            border: none;
+            border-radius: 20px;
+            cursor: pointer;
+            transition: 0.3s;
+            font-size: 14px;
+        }
+
+        .tab.active {
+            background: var(--medical-blue);
+            color: white;
+        }
+
+        /* 卡片容器：flex横向布局 + 响应式适配 */
+        #product-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+            padding: 20px 0;
+            justify-content: flex-start;
+        }
+
+        /* 卡片基础样式 */
+        .product-card {
+            flex: 1;
+            min-width: calc(50% - 10px);
+            max-width: calc(50% - 10px);
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 16px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            font-family: '微软雅黑', sans-serif;
+            box-sizing: border-box;
+            position: relative;
+            transition: box-shadow 0.3s;
+        }
+
+        .product-card:hover {
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.15);
+        }
+
+        /* 图片样式 */
+        .product-img {
+            width: 100%;
+            height: 200px;
+            object-fit: cover;
+            border-radius: 4px;
+            margin-bottom: 12px;
+        }
+
+        /* 文本样式 */
+        .product-title {
+            font-size: 18px;
+            font-weight: 600;
+            margin: 8px 0;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            color: #333;
+        }
+
+        .product-info {
+            font-size: 14px;
+            color: #666;
+            margin: 4px 0;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+
+        .product-price {
+            font-size: 16px;
+            color: var(--favorite-red);
+            font-weight: 600;
+            margin: 12px 0;
+        }
+
+        /* 加载中/无数据样式 */
+        .loading,
+        .no-data {
+            width: 100%;
+            text-align: center;
+            padding: 50px;
+            color: var(--medical-blue);
+            font-size: 18px;
+        }
+
+        .no-data {
+            color: #666;
+        }
+
+        /* 分页控件样式 */
+        .pagination {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin: 2rem 0;
+            font-size: 0.875rem;
+            color: #6B7280;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+
+        .page-btn {
+            width: 2rem;
+            height: 2rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 0.5rem;
+            border: 1px solid #E5E7EB;
+            background-color: #FFFFFF;
+            color: #6B7280;
+            font-size: 0.75rem;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        .page-btn:hover:not(:disabled) {
+            background-color: #F9FAFB;
+        }
+
+        .page-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .page-btn.active {
+            border-color: var(--medical-blue);
+            background-color: var(--medical-blue);
+            color: #FFFFFF;
+        }
+
+        .ellipsis {
+            width: 2rem;
+            height: 2rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #6B7280;
+            font-size: 0.75rem;
+        }
+
+        /* 响应式适配 */
+        @media (min-width: 1200px) {
+            .product-card {
+                min-width: calc(16.666% - 17px);
+                max-width: calc(16.666% - 17px);
+            }
+        }
+
+        @media (min-width: 768px) and (max-width: 1199px) {
+            .product-card {
+                min-width: calc(25% - 15px);
+                max-width: calc(25% - 15px);
+            }
+        }
+
+        @media (max-width: 767px) {
+            .product-card {
+                min-width: calc(50% - 10px);
+                max-width: calc(50% - 10px);
+            }
+        }
+
+        @media (max-width: 479px) {
+            .product-card {
+                min-width: 100%;
+                max-width: 100%;
+            }
+
+            .tab {
+                padding: 8px 15px;
+                font-size: 13px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <!-- 搜索框 -->
+        <div class="search-box">
+            <input type="text" id="searchInput" placeholder="输入商品名称、描述或分类...">
+        </div>
+
+        <!-- 分类标签 -->
+        <div class="tabs">
+            <button class="tab active" data-category="all">全部商品</button>
+            <button class="tab" data-category="食品">食品</button>
+            <button class="tab" data-category="服务">服务</button>
+            <button class="tab" data-category="电子产品">电子产品</button>
+            <button class="tab" data-category="家居用品">家居用品</button>
+            <button class="tab" data-category="其他">其他</button>
+        </div>
+
+        <!-- 商品卡片容器 -->
+        <div id="product-container">
+            <div class="loading">加载中...</div>
+        </div>
+
+        <!-- 分页控件 -->
+        <div class="pagination" id="paginationControls">
+            <button class="page-btn" id="prevPage" disabled>
+                <i class="fa fa-chevron-left"></i>
+            </button>
+            <!-- 页码通过JS渲染 -->
+            <button class="page-btn" id="nextPage" disabled>
+                <i class="fa fa-chevron-right"></i>
+            </button>
+        </div>
+    </div>
+
+    <script type="module">
+        import url1 from '../peizhi/config.js';
+        const SHOP_ID = localStorage.getItem("current_shop_id");
+        const token = localStorage.getItem('sjlocaltoken');
+        const container = document.getElementById('product-container');
+
+        // 分页配置
+        const paginationConfig = {
+            pageSize: 12, // 每页商品数量，可根据需求调整
+            currentPage: 1,
+            totalCount: 0,
+            totalPages: 0
+        };
+
+        // 筛选条件
+        const filterParams = {
+            category: 'all',
+            keyword: ''
+        };
+
+        // 格式化图片链接
+        function formatImageUrl(oldImageUrl) {
+            if (!oldImageUrl || oldImageUrl === 'null' || oldImageUrl === 'undefined') {
+                return 'https://via.placeholder.com/300x200?text=暂无图片';
+            }
+            try {
+                const urlObj = new URL(oldImageUrl);
+                return `${url1}${urlObj.pathname}`;
+            } catch (e) {
+                return 'https://via.placeholder.com/300x200?text=暂无图片';
+            }
+        }
+
+        // 初始化：绑定事件 + 加载第一页数据
+        init();
+
+        async function init() {
+            // 绑定分类切换事件
+            document.querySelectorAll('.tab').forEach(tab => {
+                tab.addEventListener('click', function () {
+                    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+                    this.classList.add('active');
+                    filterParams.category = this.dataset.category;
+                    paginationConfig.currentPage = 1; // 筛选后重置到第一页
+                    fetchProductData(1);
+                });
+            });
+
+            // 绑定搜索事件（防抖）
+            document.getElementById('searchInput').addEventListener('input', function () {
+                filterParams.keyword = this.value.toLowerCase().trim();
+                clearTimeout(this.searchTimer);
+                this.searchTimer = setTimeout(() => {
+                    paginationConfig.currentPage = 1;
+                    fetchProductData(1);
+                }, 500);
+            });
+
+            // 绑定分页事件
+            document.getElementById('prevPage').addEventListener('click', goToPrevPage);
+            document.getElementById('nextPage').addEventListener('click', goToNextPage);
+
+            // 加载第一页数据
+            fetchProductData(1);
+        }
+
+        /**
+         * 发起商品分页请求
+         * @param {number} page - 当前页码
+         */
+        async function fetchProductData(page) {
+            try {
+                // 显示加载状态
+                container.innerHTML = '<div class="loading">加载中...</div>';
+
+                // 拼接请求参数
+                let requestUrl = `${url1}/api/shops/${SHOP_ID}/products/?page=${page}&page_size=${paginationConfig.pageSize}`;
+                if (filterParams.category !== 'all') {
+                    requestUrl += `&category=${encodeURIComponent(filterParams.category)}`;
+                }
+                if (filterParams.keyword) {
+                    requestUrl += `&keyword=${encodeURIComponent(filterParams.keyword)}`;
+                }
+
+                // 发起请求
+                const response = await axios({
+                    url: requestUrl,
+                    method: 'GET',
+                    timeout: 5000
+                });
+
+                // 更新分页配置
+                paginationConfig.totalCount = response.data.count || 0;
+                paginationConfig.totalPages = Math.ceil(paginationConfig.totalCount / paginationConfig.pageSize);
+                paginationConfig.currentPage = page;
+
+                // 渲染商品
+                renderProducts(response.data.results || []);
+
+                // 渲染分页控件
+                renderPaginationControls();
+
+            } catch (error) {
+                console.error('获取商品失败：', error);
+                container.innerHTML = '<div class="no-data">数据加载失败，请刷新重试</div>';
+            }
+        }
+
+        /**
+         * 渲染商品卡片
+         * @param {Array} products - 商品数组
+         */
+        function renderProducts(products) {
+            if (products.length === 0) {
+                container.innerHTML = '<div class="no-data">未找到匹配的商品</div>';
+                return;
+            }
+
+            // 拼接商品卡片HTML
+            const cardsHtml = products.map(product => {
+                // 处理字段默认值
+                const productName = product.name || '未知商品';
+                const productCategory = product.category || '未分类';
+                const productDesc = product.description || '无描述';
+                const productPrice = product.price ? Number(product.price).toFixed(2) : '0.00';
+                const productImage = formatImageUrl(product.image);
+                const createTime = product.created_at ? formatTime(product.created_at) : '未知时间';
+
+                return `
+                    <div class="product-card" data-id="${product.product_id || product.id}">
+                        <!-- 商品图片 -->
+                        <img src="${productImage}" alt="${productName}" class="product-img">
+                        <!-- 商品名称 -->
+                        <h3 class="product-title">${productName}</h3>
+                        <!-- 分类 -->
+                        <div class="product-info">分类：${productCategory}</div>
+                        <!-- 创建时间 -->
+                        <div class="product-info">创建时间：${createTime}</div>
+                        <!-- 描述 -->
+                        <div class="product-info">描述：${productDesc}</div>
+                        <!-- 价格 -->
+                        <div class="product-price">价格：¥${productPrice}</div>
+                    </div>
+                `;
+            }).join('');
+
+            // 渲染到页面
+            container.innerHTML = cardsHtml;
+        }
+
+        /**
+         * 渲染分页控件
+         */
+        function renderPaginationControls() {
+            const controlsContainer = document.getElementById('paginationControls');
+            const prevBtn = document.getElementById('prevPage');
+            const nextBtn = document.getElementById('nextPage');
+
+            // 清空现有页码（保留前后按钮）
+            while (controlsContainer.children.length > 2) {
+                controlsContainer.removeChild(controlsContainer.children[1]);
+            }
+
+            const totalPages = paginationConfig.totalPages;
+            const currentPage = paginationConfig.currentPage;
+
+            // 生成页码数组（智能显示）
+            let pageNumbers = [];
+            if (totalPages <= 5) {
+                for (let i = 1; i <= totalPages; i++) {
+                    pageNumbers.push(i);
+                }
+            } else {
+                pageNumbers.push(1);
+                if (currentPage > 3) pageNumbers.push('...');
+                if (currentPage > 2) pageNumbers.push(currentPage - 2);
+                if (currentPage > 1) pageNumbers.push(currentPage - 1);
+                if (currentPage !== 1 && currentPage !== totalPages) pageNumbers.push(currentPage);
+                if (currentPage < totalPages) pageNumbers.push(currentPage + 1);
+                if (currentPage < totalPages - 1) pageNumbers.push(currentPage + 2);
+                if (currentPage < totalPages - 2) pageNumbers.push('...');
+                if (totalPages > 1) pageNumbers.push(totalPages);
+            }
+
+            // 添加页码元素
+            pageNumbers.forEach(item => {
+                if (item === '...') {
+                    const ellipsis = document.createElement('span');
+                    ellipsis.className = 'ellipsis';
+                    ellipsis.textContent = '...';
+                    controlsContainer.insertBefore(ellipsis, nextBtn);
+                } else {
+                    const pageBtn = document.createElement('button');
+                    pageBtn.className = `page-btn ${item === currentPage ? 'active' : ''}`;
+                    pageBtn.textContent = item;
+                    pageBtn.dataset.page = item;
+                    pageBtn.addEventListener('click', () => goToPage(item));
+                    controlsContainer.insertBefore(pageBtn, nextBtn);
+                }
+            });
+
+            // 更新上下页按钮状态
+            prevBtn.disabled = currentPage === 1;
+            nextBtn.disabled = currentPage === totalPages;
+        }
+
+        /**
+         * 跳转到指定页码
+         * @param {number} pageNum - 目标页码
+         */
+        function goToPage(pageNum) {
+            if (pageNum < 1 || pageNum > paginationConfig.totalPages || pageNum === paginationConfig.currentPage) {
+                return;
+            }
+            fetchProductData(pageNum);
+            window.scrollTo({ top: 0, behavior: 'smooth' }); // 滚动到顶部
+        }
+
+        /**
+         * 上一页
+         */
+        function goToPrevPage() {
+            goToPage(paginationConfig.currentPage - 1);
+        }
+
+        /**
+         * 下一页
+         */
+        function goToNextPage() {
+            goToPage(paginationConfig.currentPage + 1);
+        }
+
+        // 时间格式化函数
+        function formatTime(isoTime) {
+            const date = new Date(isoTime);
+            if (isNaN(date.getTime())) return '无效时间';
+            return `${date.getFullYear()}-${(date.getMonth() + 1).toString().padStart(2, '0')}-${date.getDate().toString().padStart(2, '0')} ${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}`;
+        }
+    </script>
+
+    <!-- 引入font-awesome图标库 -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</body>
+
+</html>

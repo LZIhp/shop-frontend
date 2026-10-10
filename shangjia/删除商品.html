@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>商品详情卡片</title>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <style>
+        /* 卡片基础样式 */
+        .product-card {
+            width: 300px;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 16px;
+            margin: 20px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            font-family: Arial, sans-serif;
+            display: inline-block;
+            vertical-align: top;
+        }
+
+        /* 图片样式 */
+        .product-img {
+            width: 100%;
+            height: 200px;
+            object-fit: cover;
+            border-radius: 4px;
+            margin-bottom: 12px;
+        }
+
+        /* 文本样式 */
+        .product-title {
+            font-size: 18px;
+            font-weight: 600;
+            margin: 8px 0;
+        }
+
+        .product-info {
+            font-size: 14px;
+            color: #666;
+            margin: 4px 0;
+        }
+
+        .product-price {
+            font-size: 16px;
+            color: #ff4400;
+            font-weight: 600;
+            margin: 12px 0;
+        }
+
+        /* 加载和无数据样式 */
+        .loading,
+        .no-data {
+            text-align: center;
+            padding: 50px;
+            color: #1a5c9e;
+            font-size: 18px;
+        }
+
+        /* 分页样式（和之前保持一致） */
+        .pagination {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin: 2rem 0;
+            font-size: 0.875rem;
+            color: #6B7280;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+
+        .page-btn {
+            width: 2rem;
+            height: 2rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 0.5rem;
+            border: 1px solid #E5E7EB;
+            background-color: #FFFFFF;
+            color: #6B7280;
+            font-size: 0.75rem;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        .page-btn:hover:not(:disabled) {
+            background-color: #F9FAFB;
+        }
+
+        .page-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .page-btn.active {
+            border-color: #1a5c9e;
+            background-color: #1a5c9e;
+            color: #FFFFFF;
+        }
+
+        .ellipsis {
+            width: 2rem;
+            height: 2rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #6B7280;
+            font-size: 0.75rem;
+        }
+    </style>
+</head>
+
+<body>
+    <!-- 卡片容器 -->
+    <div id="product-container"></div>
+
+    <!-- 分页控件 -->
+    <div class="pagination" id="paginationControls">
+        <button class="page-btn" id="prevPage" disabled>
+            ←
+        </button>
+        <!-- 页码通过JS渲染 -->
+        <button class="page-btn active">1</button>
+        <button class="page-btn" id="nextPage" disabled>
+            →
+        </button>
+    </div>
+
+    <script type="module">
+        import url1 from '../peizhi/config.js';
+        const SHOP_ID = localStorage.getItem("current_shop_id");
+        const token = localStorage.getItem('sjlocaltoken');
+        const container = document.getElementById('product-container');
+
+        // 分页配置（和之前保持一致）
+        const paginationConfig = {
+            pageSize: 10, // 每页条数
+            currentPage: 1,
+            totalCount: 0, // 总数据条数
+            totalPages: 0  // 总页数
+        };
+
+        // 初始化
+        init();
+
+        /**
+         * 初始化函数
+         */
+        function init() {
+            // 加载第一页数据
+            fetchProductData(paginationConfig.currentPage);
+
+            // 绑定分页事件
+            document.getElementById('prevPage').addEventListener('click', goToPrevPage);
+            document.getElementById('nextPage').addEventListener('click', goToNextPage);
+
+            // 绑定删除事件（委托到容器）
+            container.addEventListener('click', handleContainerClick);
+        }
+
+        /**
+         * 格式化图片URL
+         */
+        function formatImageUrl(oldImageUrl) {
+            if (!oldImageUrl || oldImageUrl === 'null' || oldImageUrl === 'undefined') {
+                return 'https://via.placeholder.com/300x200?text=暂无图片';
+            }
+            try {
+                const urlObj = new URL(oldImageUrl);
+                return `${url1}${urlObj.pathname}`;
+            } catch (e) {
+                return 'https://via.placeholder.com/300x200?text=暂无图片';
+            }
+        }
+
+        /**
+         * 时间格式化函数（将ISO时间转为易读格式）
+         */
+        function formatTime(isoTime) {
+            if (!isoTime) return '未知时间';
+            const date = new Date(isoTime);
+            return `${date.getFullYear()}-${(date.getMonth() + 1).toString().padStart(2, '0')}-${date.getDate().toString().padStart(2, '0')} ${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}`;
+        }
+
+        /**
+         * 请求商品数据（带分页）
+         */
+        function fetchProductData(page) {
+            // 显示加载中
+            container.innerHTML = '<div class="loading">加载中...</div>';
+
+            // 拼接请求参数（带分页）
+            let requestUrl = `${url1}/api/shops/${SHOP_ID}/products/?page=${page}&page_size=${paginationConfig.pageSize}`;
+
+            axios({
+                url: requestUrl,
+                method: 'GET',
+                headers: {
+                    // 若接口需要token，取消注释
+                    // 'Authorization': `Bearer ${token}`
+                }
+            }).then(result => {
+                console.log('商品列表接口返回：', result);
+
+                // 更新分页配置
+                paginationConfig.totalCount = result.data.count || 0;
+                paginationConfig.totalPages = Math.ceil(paginationConfig.totalCount / paginationConfig.pageSize);
+                paginationConfig.currentPage = page;
+
+                // 渲染商品列表
+                renderProducts(result.data.results || []);
+
+                // 渲染分页控件
+                renderPaginationControls();
+
+            }).catch(error => {
+                console.error('获取商品失败：', error);
+                container.innerHTML = '<div class="no-data">加载商品失败，请重试</div>';
+            });
+        }
+
+        /**
+         * 渲染商品列表
+         */
+        function renderProducts(products) {
+            if (products.length === 0) {
+                container.innerHTML = '<div class="no-data">暂无商品数据</div>';
+                return;
+            }
+
+            // 拼接商品卡片HTML
+            let cardHtml = '';
+            products.forEach(product => {
+                const productImage = formatImageUrl(product.image);
+                cardHtml += `
+                    <div class="product-card" data-id="${product.product_id || product.id}">
+                        <!-- 商品图片 -->
+                        <img src="${productImage}" alt="${product.name}" class="product-img">
+                        <!-- 商品名称 -->
+                        <h3 class="product-title">${product.name || '未命名商品'}</h3>
+                        <!-- 分类 -->
+                        <div class="product-info">分类：${product.category || '其他'}</div>
+                        <!-- 创建时间（格式化） -->
+                        <div class="product-info">创建时间：${formatTime(product.created_at)}</div>
+                        <!-- 描述 -->
+                        <div class="product-info">描述：${product.description || '无描述'}</div>
+                        <!-- 删除按钮 -->
+                        <button class='shanchu' data-id='${product.product_id || product.id}'>删除</button>                    
+                        <!-- 价格 -->
+                        <div class="product-price">价格：¥${product.price || '0.00'}</div>
+                    </div>
+                `;
+            });
+
+            // 将卡片添加到容器
+            container.innerHTML = cardHtml;
+        }
+
+        /**
+         * 处理容器点击事件（主要是删除按钮）
+         */
+        function handleContainerClick(e) {
+            // 点击删除按钮
+            if (e.target.classList.contains('shanchu')) {
+                // 确认删除
+                const isSure = confirm('确定要删除这个商品吗？删除后不能恢复哦～');
+                if (!isSure) return;
+
+                const productId = e.target.dataset.id;
+                console.log('要删除的商品ID：', productId);
+
+                // 发起删除请求
+                axios({
+                    url: `${url1}/api/products/${productId}/`,
+                    method: 'DELETE',
+                    headers: {
+                        "Content-Type": "application/json",
+                        Authorization: `Bearer ${localStorage.getItem('sjlocaltoken')}`
+                    }
+                }).then(function (result) {
+                    alert('商品删除成功！');
+                    console.log('删除成功：', result);
+
+                    // 重新加载当前页数据（保证分页数据准确）
+                    fetchProductData(paginationConfig.currentPage);
+
+                }).catch(function (error) {
+                    alert('删除失败：' + (error.response?.data?.message || '网络错误，请重试'));
+                    console.error('删除失败原因：', error);
+                });
+            }
+        }
+
+        /**
+         * 渲染分页控件
+         */
+        function renderPaginationControls() {
+            const controlsContainer = document.getElementById('paginationControls');
+            const prevBtn = document.getElementById('prevPage');
+            const nextBtn = document.getElementById('nextPage');
+
+            // 清空现有页码（保留前后按钮）
+            while (controlsContainer.children.length > 2) {
+                controlsContainer.removeChild(controlsContainer.children[1]);
+            }
+
+            const totalPages = paginationConfig.totalPages;
+            const currentPage = paginationConfig.currentPage;
+
+            // 页码显示规则
+            let pageNumbers = [];
+            if (totalPages <= 5) {
+                for (let i = 1; i <= totalPages; i++) {
+                    pageNumbers.push(i);
+                }
+            } else {
+                pageNumbers.push(1);
+                if (currentPage > 3) pageNumbers.push('...');
+                if (currentPage > 2) pageNumbers.push(currentPage - 2);
+                if (currentPage > 1) pageNumbers.push(currentPage - 1);
+                if (currentPage !== 1 && currentPage !== totalPages) pageNumbers.push(currentPage);
+                if (currentPage < totalPages) pageNumbers.push(currentPage + 1);
+                if (currentPage < totalPages - 1) pageNumbers.push(currentPage + 2);
+                if (currentPage < totalPages - 2) pageNumbers.push('...');
+                if (totalPages > 1) pageNumbers.push(totalPages);
+            }
+
+            // 添加页码按钮
+            pageNumbers.forEach(item => {
+                if (item === '...') {
+                    const ellipsis = document.createElement('span');
+                    ellipsis.className = 'ellipsis';
+                    ellipsis.textContent = '...';
+                    controlsContainer.insertBefore(ellipsis, nextBtn);
+                } else {
+                    const pageBtn = document.createElement('button');
+                    pageBtn.className = `page-btn ${item === currentPage ? 'active' : ''}`;
+                    pageBtn.textContent = item;
+                    pageBtn.dataset.page = item;
+                    pageBtn.addEventListener('click', () => goToPage(item));
+                    controlsContainer.insertBefore(pageBtn, nextBtn);
+                }
+            });
+
+            // 更新上下页按钮状态
+            prevBtn.disabled = currentPage === 1;
+            nextBtn.disabled = currentPage === totalPages;
+        }
+
+        /**
+         * 跳转到指定页码
+         */
+        function goToPage(pageNum) {
+            if (pageNum < 1 || pageNum > paginationConfig.totalPages || pageNum === paginationConfig.currentPage) {
+                return;
+            }
+            fetchProductData(pageNum);
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        /**
+         * 上一页
+         */
+        function goToPrevPage() {
+            goToPage(paginationConfig.currentPage - 1);
+        }
+
+        /**
+         * 下一页
+         */
+        function goToNextPage() {
+            goToPage(paginationConfig.currentPage + 1);
+        }
+    </script>
+</body>
+
+</html>

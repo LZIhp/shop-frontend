@@ -1,0 +1,686 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>添加商品</title>
+    <!-- 必要依赖引入顺序保持不变 -->
+    <script src="https://cdn.jsdelivr.net/npm/jquery@3.6.0/dist/jquery.min.js"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/css/bootstrap.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+
+    <script>
+        // Tailwind配置保留不变
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#3b82f6',
+                        danger: '#ef4444',
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        /* 原有核心样式保持不变 */
+        .upload-area {
+            border: 2px dashed #e5e7eb;
+            border-radius: 8px;
+            padding: 30px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-bottom: 20px;
+        }
+
+        .upload-area:hover {
+            border-color: #3b82f6;
+            background-color: #eff6ff;
+        }
+
+        .upload-icon {
+            font-size: 30px;
+            color: #3b82f6;
+            margin-bottom: 15px;
+        }
+
+        .progress-container {
+            margin-top: 20px;
+            display: none;
+        }
+
+        .progress-bar {
+            height: 6px;
+            background-color: #e5e7eb;
+            border-radius: 3px;
+            overflow: hidden;
+        }
+
+        .progress {
+            height: 100%;
+            background-color: #3b82f6;
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+
+        .form-hint {
+            margin-top: 5px;
+            font-size: 13px;
+            color: #6b7280;
+        }
+
+        .toast {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            padding: 12px 20px;
+            border-radius: 8px;
+            color: white;
+            z-index: 9999;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            display: flex;
+            align-items: center;
+            opacity: 0;
+            transform: translateY(20px);
+            transition: all 0.3s ease;
+        }
+
+        .toast.show {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .toast.success {
+            background-color: #10b981;
+        }
+
+        .toast.error {
+            background-color: #ef4444;
+        }
+
+        .toast i {
+            margin-right: 8px;
+        }
+
+        /* 移动设备适配样式保留不变 */
+        @media (max-width: 768px) {
+            .modal-dialog {
+                margin: 0;
+                max-width: 100%;
+            }
+        }
+
+        /* 手机端上传选择弹窗样式（仅保留相册选项） */
+        .upload-select-modal {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: white;
+            border-radius: 16px 16px 0 0;
+            padding: 20px;
+            z-index: 10000;
+            transform: translateY(100%);
+            transition: transform 0.3s ease;
+        }
+
+        .upload-select-modal.show {
+            transform: translateY(0);
+        }
+
+        .upload-select-title {
+            text-align: center;
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 25px;
+            color: #333;
+        }
+
+        .upload-select-btns {
+            display: flex;
+            justify-content: center;
+            /* 单个按钮居中 */
+            margin-bottom: 30px;
+        }
+
+        .upload-select-btn {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+            width: 80px;
+        }
+
+        .upload-select-icon {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background: #f3f4f6;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            color: #3b82f6;
+        }
+
+        .upload-select-text {
+            font-size: 12px;
+            color: #666;
+        }
+
+        .upload-select-cancel {
+            width: 100%;
+            padding: 12px;
+            background: #f9fafb;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            color: #333;
+            cursor: pointer;
+        }
+
+        /* 遮罩层样式保留不变 */
+        .modal-backdrop-custom {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 9999;
+            display: none;
+        }
+
+        .modal-backdrop-custom.show {
+            display: block;
+        }
+    </style>
+</head>
+
+<body class="bg-gray-50 min-h-screen p-4 md:p-8">
+    <!-- 页面主体结构保持不变 -->
+    <div class="max-w-2xl mx-auto p-4 sm:p-6">
+        <div class="mb-6">
+            <h1 class="text-2xl font-bold text-gray-800">添加商品</h1>
+            <p class="text-gray-500 mt-1">请填写商品信息并提交</p>
+        </div>
+
+        <div class="bg-white rounded-lg shadow-sm p-6">
+            <form id="productForm">
+                <!-- 商品名称 -->
+                <div class="mb-4">
+                    <label for="sjname" class="block text-sm font-medium text-gray-700 mb-1">商品名称 <span
+                            class="text-danger">*</span></label>
+                    <input type="text" id="sjname" name="sjname"
+                        class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary"
+                        placeholder="输入商品名称" required>
+                </div>
+
+                <!-- 商品描述 -->
+                <div class="mb-4">
+                    <label for="description" class="block text-sm font-medium text-gray-700 mb-1">商品描述</label>
+                    <textarea id="description" name="description" rows="3"
+                        class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary"
+                        placeholder="输入商品描述（可选）"></textarea>
+                </div>
+
+                <!-- 商品价格 -->
+                <div class="mb-4">
+                    <label for="price" class="block text-sm font-medium text-gray-700 mb-1">价格 <span
+                            class="text-danger">*</span></label>
+                    <div class="relative">
+                        <span class="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">¥</span>
+                        <input type="number" id="price" name="price" step="0.01" min="0"
+                            class="w-full pl-8 pr-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary"
+                            placeholder="0.00" required>
+                    </div>
+                </div>
+
+                <!-- 商品分类 -->
+                <div class="mb-4">
+                    <label for="category" class="block text-sm font-medium text-gray-700 mb-1">分类 <span
+                            class="text-danger">*</span></label>
+                    <select id="category" name="category"
+                        class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary"
+                        required>
+                        <option value="">请选择分类</option>
+                        <option value="食品">食品</option>
+                        <option value="服装">服装</option>
+                        <option value="电子产品">电子产品</option>
+                        <option value="家居用品">家居用品</option>
+                        <option value="其他">其他</option>
+                    </select>
+                </div>
+
+                <!-- 商品状态 -->
+                <div class="mb-6">
+                    <label class="block text-sm font-medium text-gray-700 mb-1">初始状态</label>
+                    <div class="flex items-center space-x-4">
+                        <label class="inline-flex items-center">
+                            <input type="radio" name="is_active" value="true" class="text-primary focus:ring-primary"
+                                checked>
+                            <span class="ml-2 text-gray-700">上架</span>
+                        </label>
+                        <label class="inline-flex items-center">
+                            <input type="radio" name="is_active" value="false" class="text-primary focus:ring-primary">
+                            <span class="ml-2 text-gray-700">下架</span>
+                        </label>
+                    </div>
+                </div>
+                <!-- 商品图片上传（移除拍照相关提示） -->
+                <div class="form-group mb-6">
+                    <label class="form-label block text-sm font-medium text-gray-700 mb-1">商品图片 <span
+                            class="text-danger">*</span></label>
+                    <div class="upload-area" id="product-photo-upload">
+                        <div class="upload-icon">
+                            <i class="fa fa-images"></i>
+                        </div>
+                        <div>
+                            <p>点击上传图片或拖拽文件至此处（最多5张）</p>
+                            <p class="form-hint">支持JPG、PNG格式，自动压缩至1MB以内</p>
+                        </div>
+                        <input type="file" accept="image/*" multiple style="display: none;" id="productImages">
+                    </div>
+
+                    <!-- 图片预览容器 -->
+                    <div id="image-preview-container" class="flex flex-wrap gap-3 mt-3"></div>
+
+                    <!-- 上传进度条 -->
+                    <div class="progress-container" id="product-progress-container">
+                        <div class="progress-bar">
+                            <div class="progress" id="product-upload-progress"></div>
+                        </div>
+                        <div class="form-hint" id="product-upload-status">上传中...</div>
+                    </div>
+                </div>
+
+                <!-- 提交与取消按钮 -->
+                <div class="flex justify-end space-x-3">
+                    <button type="button" id="cancelBtn"
+                        class="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 transition-colors">
+                        取消
+                    </button>
+                    <button type="submit"
+                        class="px-4 py-2 bg-primary text-white rounded-md hover:bg-primary/90 transition-colors">
+                        <i class="fa fa-save mr-1"></i> 保存商品
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- 手机端上传选择弹窗（仅保留相册选项） -->
+    <div class="modal-backdrop-custom" id="uploadSelectBackdrop"></div>
+    <div class="upload-select-modal" id="uploadSelectModal">
+        <div class="upload-select-btns">
+            <div class="upload-select-btn" id="selectAlbumBtn">
+                <div class="upload-select-icon">
+                    <i class="fa fa-folder-open"></i>
+                </div>
+                <div class="upload-select-text">选择上传方式</div>
+            </div>
+        </div>
+        <button class="upload-select-cancel" id="closeUploadSelectBtn">取消</button>
+    </div>
+
+    <!-- 提示消息组件 -->
+    <div id="toast" class="toast">
+        <i id="toastIcon" class="fa fa-check"></i>
+        <span id="toastText"></span>
+    </div>
+
+    <script type="module">
+        import url1 from '../peizhi/config.js';
+        let productImageUpload;
+        const MAX_IMAGE_SIZE = 1 * 1024 * 1024; // 1MB
+        const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent); // 移动设备判断
+
+        document.addEventListener('DOMContentLoaded', function () {
+            // 初始化图片上传功能
+            productImageUpload = initProductImageUpload();
+            // 绑定表单提交事件
+            bindProductFormSubmit();
+            // 取消按钮事件
+            document.getElementById('cancelBtn').addEventListener('click', function () {
+                document.getElementById('productForm').reset();
+                productImageUpload.clearImages();
+            });
+            // 初始化手机端上传选择弹窗
+            initMobileUploadSelect();
+        });
+
+        /**
+         * 初始化手机端上传选择弹窗（仅相册功能）
+         */
+        function initMobileUploadSelect() {
+            const uploadArea = document.getElementById('product-photo-upload');
+            const uploadSelectModal = document.getElementById('uploadSelectModal');
+            const uploadSelectBackdrop = document.getElementById('uploadSelectBackdrop');
+            const selectAlbumBtn = document.getElementById('selectAlbumBtn');
+            const closeUploadSelectBtn = document.getElementById('closeUploadSelectBtn');
+            const fileInput = document.getElementById('productImages');
+
+            // 手机端点击上传区域显示弹窗
+            uploadArea.addEventListener('click', function (e) {
+                if (isMobile && !e.target.closest('.delete-image') && !e.target.closest('.relative')) {
+                    uploadSelectModal.classList.add('show');
+                    uploadSelectBackdrop.classList.add('show');
+                }
+            });
+
+            // 选择相册：触发文件选择器
+            selectAlbumBtn.addEventListener('click', function () {
+                fileInput.click();
+                hideUploadSelectModal();
+            });
+
+            // 关闭弹窗
+            closeUploadSelectBtn.addEventListener('click', hideUploadSelectModal);
+            uploadSelectBackdrop.addEventListener('click', hideUploadSelectModal);
+
+            // 隐藏弹窗辅助函数
+            function hideUploadSelectModal() {
+                uploadSelectModal.classList.remove('show');
+                uploadSelectBackdrop.classList.remove('show');
+            }
+        }
+
+        /**
+         * 商品图片上传核心逻辑（保留文件上传、拖放、压缩、预览、删除）
+         */
+        function initProductImageUpload() {
+            const uploadArea = document.getElementById('product-photo-upload');
+            const fileInput = document.getElementById('productImages');
+            const previewContainer = document.getElementById('image-preview-container');
+            const progressContainer = document.getElementById('product-progress-container');
+            const progressBar = document.getElementById('product-upload-progress');
+            const uploadStatus = document.getElementById('product-upload-status');
+
+            // 电脑端点击上传区域直接打开文件选择器
+            if (!isMobile) {
+                uploadArea.addEventListener('click', function (e) {
+                    if (!e.target.closest('.delete-image') && !e.target.closest('.relative')) {
+                        fileInput.click();
+                    }
+                });
+            }
+
+            // 拖放上传功能
+            uploadArea.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                uploadArea.style.borderColor = '#3b82f6';
+                uploadArea.style.backgroundColor = '#eff6ff';
+            });
+            uploadArea.addEventListener('dragleave', () => {
+                uploadArea.style.borderColor = '#e5e7eb';
+                uploadArea.style.backgroundColor = 'transparent';
+            });
+            uploadArea.addEventListener('drop', (e) => {
+                e.preventDefault();
+                uploadArea.style.borderColor = '#e5e7eb';
+                uploadArea.style.backgroundColor = 'transparent';
+                handleFiles(e.dataTransfer.files);
+            });
+
+            // 文件选择器选择图片后处理
+            fileInput.addEventListener('change', (e) => {
+                handleFiles(e.target.files);
+            });
+
+            /**
+             * 处理选中的图片（压缩、预览、删除绑定）
+             * @param {FileList} files - 选中的图片文件列表
+             */
+            async function handleFiles(files) {
+                const currentCount = previewContainer.querySelectorAll('.relative').length;
+                // 限制最多上传5张
+                if (currentCount + files.length > 5) {
+                    showToast('最多只能上传5张图片', 'error');
+                    return;
+                }
+
+                // 遍历处理每张图片
+                for (let i = 0; i < files.length; i++) {
+                    const file = files[i];
+                    // 验证是否为图片文件
+                    if (!file.type.startsWith('image/')) {
+                        showToast('请上传图片文件（JPG/PNG格式）', 'error');
+                        continue;
+                    }
+
+                    // 图片压缩至1MB以内
+                    const compressedBlob = await compressImage(file);
+
+                    // 生成预览图
+                    const reader = new FileReader();
+                    reader.onload = (e) => {
+                        const preview = document.createElement('div');
+                        preview.className = 'relative';
+                        preview.style.width = '120px';
+                        preview.style.height = '120px';
+                        preview.dataset.filename = file.name;
+                        preview.dataset.type = 'file'; // 标记为文件上传类型
+
+                        // 预览图HTML结构
+                        preview.innerHTML = `
+                            <img src="${e.target.result}" style="width:100%;height:100%;object-fit:cover;border-radius:4px;border:1px solid #eee;" alt="商品图片">
+                            <button type="button" class="delete-image absolute top-1 right-1 bg-danger text-white rounded-full w-6 h-6 flex items-center justify-center" data-name="${file.name}">
+                                <i class="fa fa-times text-xs"></i>
+                            </button>
+                        `;
+
+                        previewContainer.appendChild(preview);
+
+                        // 绑定删除按钮事件
+                        preview.querySelector('.delete-image').addEventListener('click', function () {
+                            fileInput.value = ''; // 清空文件选择器
+                            preview.remove(); // 移除预览图
+                        });
+                    };
+                    reader.readAsDataURL(compressedBlob);
+                }
+            }
+
+            /**
+             * 对外暴露的方法
+             */
+            return {
+                // 获取选中的所有图片（仅文件上传类型）
+                getSelectedImages: () => {
+                    const result = [];
+                    const filePreviews = previewContainer.querySelectorAll('[data-type="file"]');
+
+                    // 匹配预览图和文件选择器中的文件
+                    Array.from(fileInput.files).forEach(file => {
+                        if (previewContainer.querySelector(`[data-filename="${file.name}"][data-type="file"]`)) {
+                            result.push(file);
+                        }
+                    });
+                    return result;
+                },
+                // 获取图片总数（用于表单验证）
+                getImageCount: () => previewContainer.querySelectorAll('.relative').length,
+                // 显示上传进度条
+                showProgress: () => progressContainer.style.display = 'block',
+                // 更新进度条百分比
+                updateProgress: (percent) => {
+                    progressBar.style.width = `${percent}%`;
+                    uploadStatus.textContent = `上传中...${percent}%`;
+                    if (percent === 100) {
+                        uploadStatus.textContent = '上传完成，正在提交...';
+                    }
+                },
+                // 隐藏上传进度条
+                hideProgress: () => progressContainer.style.display = 'none',
+                // 清空所有图片（预览+文件选择器）
+                clearImages: () => {
+                    previewContainer.innerHTML = '';
+                    fileInput.value = '';
+                }
+            };
+        }
+
+        /**
+         * 图片压缩功能（保留，确保图片≤1MB）
+         * @param {Blob} blob - 原始图片Blob对象
+         * @returns {Promise<Blob>} 压缩后的图片Blob对象
+         */
+        function compressImage(blob) {
+            return new Promise((resolve) => {
+                const img = new Image();
+                const url = URL.createObjectURL(blob);
+
+                img.onload = function () {
+                    URL.revokeObjectURL(url);
+
+                    // 创建画布
+                    const canvas = document.createElement('canvas');
+                    const ctx = canvas.getContext('2d');
+
+                    // 步骤1：按比例缩小尺寸（最大边长1280px）
+                    let width = img.width;
+                    let height = img.height;
+                    const maxDimension = 1280;
+
+                    if (width > height && width > maxDimension) {
+                        height = Math.round((height * maxDimension) / width);
+                        width = maxDimension;
+                    } else if (height > maxDimension) {
+                        width = Math.round((width * maxDimension) / height);
+                        height = maxDimension;
+                    }
+
+                    canvas.width = width;
+                    canvas.height = height;
+                    ctx.drawImage(img, 0, 0, width, height);
+
+                    // 步骤2：调整JPEG质量，确保大小≤1MB
+                    let quality = 0.9;
+                    const step = 0.1;
+
+                    function compressLoop() {
+                        canvas.toBlob((compressedBlob) => {
+                            if (compressedBlob.size <= MAX_IMAGE_SIZE || quality <= 0.1) {
+                                resolve(compressedBlob);
+                            } else {
+                                quality -= step;
+                                compressLoop();
+                            }
+                        }, 'image/jpeg', quality);
+                    }
+
+                    compressLoop();
+                };
+
+                img.src = url;
+            });
+        }
+
+        /**
+         * 商品表单提交逻辑（保留原有验证和提交流程）
+         */
+        function bindProductFormSubmit() {
+            const productForm = document.getElementById('productForm');
+
+            productForm.addEventListener('submit', function (e) {
+                e.preventDefault();
+
+                // 1. 验证店铺ID
+                const shopId = localStorage.getItem('current_shop_id');
+                if (!shopId) {
+                    showToast('本地未存储店铺ID，请先完成店铺绑定', 'error');
+                    return;
+                }
+
+                // 2. 验证图片数量
+                const imageCount = productImageUpload.getImageCount();
+                if (imageCount === 0) {
+                    showToast('请至少上传一张商品图片', 'error');
+                    return;
+                }
+
+                // 3. 收集表单数据
+                const formData = new FormData();
+                formData.append('shop_id', shopId);
+                formData.append('name', document.getElementById('sjname').value);
+                formData.append('description', document.getElementById('description').value);
+                formData.append('price', parseFloat(document.getElementById('price').value));
+                formData.append('category', document.getElementById('category').value);
+                formData.append('is_active', document.querySelector('input[name="is_active"]:checked').value === 'true');
+
+                // 4. 添加商品图片
+                const selectedImages = productImageUpload.getSelectedImages();
+                selectedImages.forEach((image) => {
+                    formData.append('image', image); // 后端支持多图数组可改为'image[]'
+                });
+
+                // 5. 验证登录状态
+                const token = localStorage.getItem('sjlocaltoken');
+                if (!token) {
+                    showToast('未检测到登录状态，请先登录', 'error');
+                    return;
+                }
+
+                // 6. 显示上传进度
+                productImageUpload.showProgress();
+                productImageUpload.updateProgress(0);
+
+                // 7. 提交表单到后端
+                axios({
+                    url: `${url1}/api/products/`,
+                    method: 'POST',
+                    data: formData,
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    },
+                    onUploadProgress: (progressEvent) => {
+                        const percent = Math.round((progressEvent.loaded / progressEvent.total) * 100);
+                        productImageUpload.updateProgress(percent);
+                    }
+                })
+                    .then(response => {
+                        // 提交成功处理
+                        productImageUpload.hideProgress();
+                        productForm.reset();
+                        productImageUpload.clearImages();
+                        showToast('商品添加成功！', 'success');
+                        console.log('商品添加成功：', response.data);
+                    })
+                    .catch(error => {
+                        // 提交失败处理
+                        productImageUpload.hideProgress();
+                        const errorMsg = error.response?.data?.message || '添加失败，请稍后重试';
+                        showToast(`商品添加失败：${errorMsg}`, 'error');
+                        console.error('商品添加失败：', error.response || error);
+                    });
+            });
+        }
+
+        /**
+         * 提示消息工具（保留不变）
+         * @param {string} message - 提示内容
+         * @param {string} type - 提示类型（success/error）
+         */
+        function showToast(message, type = 'success') {
+            const toast = document.getElementById('toast');
+            const toastIcon = document.getElementById('toastIcon');
+            const toastText = document.getElementById('toastText');
+
+            toastText.textContent = message;
+            toast.className = `toast ${type === 'success' ? 'success' : 'error'}`;
+            toastIcon.className = `fa ${type === 'success' ? 'fa-check' : 'fa-exclamation-circle'}`;
+
+            toast.classList.add('show');
+            setTimeout(() => {
+                toast.classList.remove('show');
+            }, 3000);
+        }
+    </script>
+</body>
+
+</html>

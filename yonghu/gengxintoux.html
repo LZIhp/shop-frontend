@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>头像设置</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background-color: black;
+            min-height: 100vh;
+            padding: 20px;
+            font-family: 'Segoe UI', Roboto, sans-serif;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .avatar-img {
+            width: 100%;
+            border-radius: 8px;
+            object-fit: cover;
+            box-shadow: 0 0 15px rgba(255, 255, 255, 0.1);
+        }
+
+        .func-div {
+            background-color: gray;
+            color: white;
+            font-size: 30px;
+            width: 90%;
+            margin: 0 auto;
+            padding: 20px;
+            border-radius: 8px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+        }
+
+        .func-div.change-avatar {
+            background-color: #4a6cf7;
+        }
+
+        .func-div:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+        }
+
+        .func-div.change-avatar:hover {
+            background-color: #3a5bdb;
+        }
+
+        /* 上传进度条样式 */
+        .progress-container {
+            width: 90%;
+            margin: 0 auto;
+            height: 8px;
+            background-color: #333;
+            border-radius: 4px;
+            overflow: hidden;
+            display: none;
+        }
+
+        .progress-bar {
+            height: 100%;
+            background-color: #4a6cf7;
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+
+        /* 提示消息样式 */
+        .toast {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            padding: 12px 24px;
+            background-color: #333;
+            color: white;
+            border-radius: 8px;
+            z-index: 9999;
+            display: none;
+            font-size: 16px;
+        }
+
+        .toast.success {
+            background-color: #10b981;
+        }
+
+        .toast.error {
+            background-color: #ef4444;
+        }
+
+        @media (max-width: 768px) {
+            .func-div {
+                font-size: 24px;
+                padding: 16px;
+                width: 95%;
+            }
+
+            .container {
+                gap: 15px;
+                padding: 15px;
+            }
+
+            .progress-container {
+                width: 95%;
+            }
+        }
+
+        #file-input {
+            display: none;
+        }
+    </style>
+    <link rel="stylesheet" href="https://cdn.bootcdn.net/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+</head>
+
+<body>
+    <div class="container">
+        <!-- 头像显示 -->
+        <label for="file-input" style="cursor: pointer;">
+            <img src="../img/1.jpg" alt="当前头像" class="avatar-img">
+        </label>
+        <input type="file" accept="image/*" id="file-input">
+
+        <!-- 上传进度条 -->
+        <div class="progress-container" id="progress-container">
+            <div class="progress-bar" id="progress-bar"></div>
+        </div>
+
+        <!-- 功能按钮 -->
+        <div class="func-div change-avatar" id="change-btn">
+            <i class="fa-solid fa-camera mr-2"></i>更换头像
+        </div>
+        <div class="func-div" id="keep-btn">
+            <i class="fa-solid fa-check mr-2"></i>留着
+        </div>
+    </div>
+
+    <!-- 提示消息 -->
+    <div class="toast" id="toast"></div>
+
+    <script type="module">
+        import url1 from '../peizhi/config.js';
+
+        // DOM元素
+        const fileInput = document.getElementById('file-input');
+        const changeBtn = document.getElementById('change-btn');
+        const keepBtn = document.getElementById('keep-btn');
+        const progressContainer = document.getElementById('progress-container');
+        const progressBar = document.getElementById('progress-bar');
+        const toast = document.getElementById('toast');
+        const avatarImg = document.querySelector('.avatar-img');
+        const token = localStorage.getItem('token');
+        function formatImageUrl(oldImageUrl) {
+            // 处理空链接或无效链接（返回默认占位图，避免显示破碎图片）
+            const urlObj = new URL(oldImageUrl);
+            // 拼接新域名 + 图片路径（保留中文编码，浏览器会自动识别）
+            return `${url1}${urlObj.pathname}`;
+            // 若链接格式异常，直接返回原链接（避免报错）
+        }
+        axios({
+            url: `${url1}/api/users/profile/`,
+            method: 'get',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            },
+        }).then(result => {
+            console.log(result.data.avatar);
+            avatarImg.src = formatImageUrl(result.data.avatar)
+            console.log(avatarImg.src, 111);
+
+        })
+        // 初始头像地址（用于回退）
+        const originalAvatarUrl = avatarImg.src;
+
+        // 点击更换头像按钮触发文件选择
+        changeBtn.addEventListener('click', () => fileInput.click());
+
+        // 选择图片后处理（预览+上传）
+        fileInput.addEventListener('change', async (e) => {
+            const file = e.target.files[0];
+            if (!file || !file.type.startsWith('image/')) {
+                showToast('请选择有效的图片文件', 'error');
+                return;
+            }
+            // 图片大小限制（1MB） 
+            const maxSize = 10 * 1024 * 1024;
+            if (file.size > maxSize) {
+                showToast('图片大小不能超过1MB', 'error');
+                return;
+            }
+
+            // 先预览图片
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                avatarImg.src = event.target.result;
+            };
+            reader.readAsDataURL(file);
+
+            // 上传到后端
+            await uploadAvatarToServer(file);
+        });
+
+        // 上传头像到后端
+        async function uploadAvatarToServer(file) {
+            try {
+                // 显示进度条
+                progressContainer.style.display = 'block';
+                progressBar.style.width = '0%';
+                // 创建FormData，按后端要求设置字段名
+                const formData = new FormData();
+                formData.append('avatar', file);
+
+                const token = localStorage.getItem('token');
+                if (!token) {
+                    showToast('请先登录', 'error');
+                    // 回退到原头像
+                    avatarImg.src = originalAvatarUrl;
+                    progressContainer.style.display = 'none';
+                    return;
+                }
+
+                // 发送上传请求
+                const response = await axios({
+                    url: `${url1}/api/users/update-avatar/`,
+                    method: 'PATCH',
+                    data: formData,
+                    headers: {
+                        'Content-Type': 'multipart/form-data',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    // 上传进度回调
+                    onUploadProgress: (progressEvent) => {
+                        const percent = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+                        progressBar.style.width = `${percent}%`;
+                    }
+                });
+
+                // 上传成功
+                showToast('头像上传成功', 'success');
+                console.log('头像上传成功:', response.data);
+                const photo_url = `${response.data.avatar_url}`;
+                console.log(photo_url);
+
+                // 3秒后隐藏进度条
+                setTimeout(() => {
+                    progressContainer.style.display = 'none';
+                }, 3000);
+                const targetUrl = `gerenxinxi.html?photo_url=${photo_url}`;
+                window.location.href = targetUrl;
+
+            } catch (error) {
+                // 上传失败处理
+                console.error('头像上传失败:', error.response || error);
+                const errorMsg = error.response?.data?.message || '上传失败，请稍后重试';
+                showToast(`头像上传失败：${errorMsg}`, 'error');
+
+                // 回退到原头像
+                avatarImg.src = originalAvatarUrl;
+                progressContainer.style.display = 'none';
+            }
+        }
+
+        // 保留当前头像（回退到原头像/刷新页面）
+        keepBtn.addEventListener('click', () => {
+            avatarImg.src = originalAvatarUrl;
+            showToast('已保留当前头像', 'success');
+            // 隐藏进度条（如果显示中）
+            progressContainer.style.display = 'none';
+        });
+
+        // 显示提示消息
+        function showToast(message, type = 'success') {
+            toast.textContent = message;
+            toast.className = 'toast';
+            toast.classList.add(type);
+            toast.style.display = 'block';
+
+            // 3秒后隐藏
+            setTimeout(() => {
+                toast.style.display = 'none';
+            }, 3000);
+        }
+    </script>
+</body>
+
+</html>

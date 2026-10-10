@@ -1,0 +1,635 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+  <meta charset="UTF-8">
+  <title>灵枢智诊-医药信息平台</title>
+  <link href="https://cdn.bootcdn.net/ajax/libs/twitter-bootstrap/4.6.0/css/bootstrap.css" rel="stylesheet">
+  <script src="https://cdn.bootcdn.net/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
+  <script src="https://cdn.bootcdn.net/ajax/libs/twitter-bootstrap/4.6.0/js/bootstrap.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    :root {
+      --medical-blue: #1a5c9e;
+      --health-green: #28a745;
+      --favorite-red: #dc3545;
+    }
+
+    body {
+      background: #f8f9fa;
+      min-height: 100vh;
+      font-family: '微软雅黑', sans-serif;
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 30px auto;
+      padding: 30px;
+      background: white;
+      border-radius: 15px;
+      box-shadow: 0 5px 20px rgba(0, 0, 0, 0.1);
+    }
+
+    .tabs {
+      margin: 20px 0;
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      font-size: 12px;
+    }
+
+    .tab {
+      padding: 5px 10px;
+      background: #e3f2fd;
+      border: none;
+      border-radius: 20px;
+      cursor: pointer;
+      transition: 0.3s;
+    }
+
+    .tab.active {
+      background: var(--medical-blue);
+      color: white;
+    }
+
+    .search-box {
+      margin: 25px 0;
+      position: relative;
+    }
+
+    #searchInput {
+      width: 100%;
+      padding: 8px 10px;
+      padding-right: 60px;
+      border: 2px solid var(--medical-blue);
+      border-radius: 30px;
+      font-size: 12px;
+      outline: none;
+    }
+
+    #searchBtn {
+      position: absolute;
+      right: 2px;
+      top: 49.6%;
+      transform: translateY(-50%);
+      padding: 8px 15px;
+      background: var(--medical-blue);
+      color: white;
+      border: none;
+      border-radius: 18px;
+      cursor: pointer;
+      font-size: 12px;
+      transition: background 0.3s;
+    }
+
+    #searchBtn:hover {
+      background: #154a82;
+    }
+
+    .box {
+      width: 100%;
+      background: white;
+      border-radius: 15px;
+      padding: 20px;
+      box-shadow: 0 3px 15px rgba(0, 0, 0, 0.1);
+      margin-bottom: 25px;
+      position: relative;
+      cursor: pointer;
+    }
+
+    .box_top {
+      display: flex;
+      align-items: center;
+      gap: 15px;
+      padding-bottom: 15px;
+      border-bottom: 1px solid #eee;
+      margin-bottom: 15px;
+    }
+
+    .box_top_left {
+      width: 60px;
+      height: 60px;
+      border-radius: 50%;
+      background: #f0f0f0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+    }
+
+    .box_top_left img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .box_top_right {
+      flex: 1;
+    }
+
+    .box_top_right .shop-name {
+      font-size: 18px;
+      font-weight: bold;
+      color: var(--medical-blue);
+      margin-bottom: 3px;
+    }
+
+    .box_top_right .shop-desc {
+      color: #666;
+      font-size: 14px;
+    }
+
+    .box_bottom {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 20px;
+    }
+
+    .box_bottom .product-img {
+      width: 120px;
+      height: 120px;
+      border-radius: 8px;
+      object-fit: cover;
+    }
+
+    .product-info {
+      flex: 1;
+      min-width: 200px;
+    }
+
+    .product-info .product-name {
+      font-size: 16px;
+      font-weight: 600;
+      margin-bottom: 5px;
+    }
+
+    .product-info .product-category,
+    .product-info .product-address,
+    .product-info .product-phone {
+      font-size: 14px;
+      color: #666;
+      margin-bottom: 3px;
+    }
+
+    .product-price {
+      font-size: 18px;
+      font-weight: bold;
+      color: var(--favorite-red);
+      margin-left: auto;
+    }
+
+    .favorite-btn {
+      position: absolute;
+      top: 15px;
+      right: 15px;
+      width: 36px;
+      height: 36px;
+      background: rgba(255, 255, 255, 0.8);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      z-index: 10;
+    }
+
+    .favorite-btn i {
+      color: #ddd;
+      transition: color 0.3s;
+    }
+
+    .favorite-btn.favorited i {
+      color: var(--favorite-red);
+    }
+
+    .nav-link {
+      font-weight: bolder;
+      font-size: 12px;
+      color: #2d5787;
+      display: inline-block;
+    }
+
+    .loading {
+      text-align: center;
+      padding: 50px;
+      color: var(--medical-blue);
+      font-size: 18px;
+    }
+
+    .no-data {
+      text-align: center;
+      padding: 50px;
+      color: #666;
+      font-size: 18px;
+    }
+
+    /* 统一分页样式 */
+    .pagination {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      margin: 2rem 0;
+      font-size: 0.875rem;
+      color: #6B7280;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+    }
+
+    .page-btn {
+      width: 2rem;
+      height: 2rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 0.5rem;
+      border: 1px solid #E5E7EB;
+      background-color: #FFFFFF;
+      color: #6B7280;
+      font-size: 0.75rem;
+      transition: all 0.3s ease;
+      cursor: pointer;
+    }
+
+    .page-btn:hover:not(:disabled) {
+      background-color: #F9FAFB;
+    }
+
+    .page-btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    .page-btn.active {
+      border-color: var(--medical-blue);
+      background-color: var(--medical-blue);
+      color: #FFFFFF;
+    }
+
+    .ellipsis {
+      width: 2rem;
+      height: 2rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #6B7280;
+      font-size: 0.75rem;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="container">
+    <div class="search-box">
+      <input type="text" id="searchInput" placeholder="输入商品名称、描述或分类">
+      <button id="searchBtn"><i class="fas fa-search"></i> 搜索</button>
+    </div>
+
+    <div class="tabs">
+      <button class="tab active" data-category="all">全部商品</button>
+      <button class="tab" data-category="食品">食品</button>
+      <button class="tab" data-category="服务">服务</button>
+      <button class="tab" data-category="电子产品">电子产品</button>
+      <button class="tab" data-category="家居用品">家居用品</button>
+      <button class="tab" data-category="其他">其他</button>
+    </div>
+
+    <div id="drugList" class="drug-grid">
+      <div class="loading">加载中...</div>
+    </div>
+
+    <!-- 分页控件 -->
+    <div class="pagination" id="paginationControls">
+      <button class="page-btn" id="prevPage" disabled>
+        <i class="fa fa-chevron-left"></i>
+      </button>
+      <!-- 页码通过JS渲染 -->
+      <button class="page-btn active">1</button>
+      <button class="page-btn" id="nextPage" disabled>
+        <i class="fa fa-chevron-right"></i>
+      </button>
+    </div>
+  </div>
+
+  <script type="module">
+    import url1 from '../peizhi/config.js';
+
+    // 分页配置（后端分页）
+    const paginationConfig = {
+      pageSize: 10, // 每页条数（和后端约定）
+      currentPage: 1,
+      totalCount: 0, // 总数据条数（后端返回count）
+      totalPages: 0  // 总页数（计算得出）
+    };
+
+    // 筛选条件
+    const filterParams = {
+      category: 'all',
+      keyword: ''
+    };
+
+    // 店铺信息缓存
+    const shopMap = new Map();
+    // 收藏数据
+    let favorites = JSON.parse(localStorage.getItem('drugFavorites')) || [];
+
+    // 初始化
+    init();
+
+    /**
+     * 初始化函数
+     */
+    function init() {
+      // 加载第一页数据
+      fetchProductData(paginationConfig.currentPage);
+
+      // 绑定分类切换事件
+      document.querySelectorAll('.tab').forEach(tab => {
+        tab.addEventListener('click', function () {
+          document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+          this.classList.add('active');
+          filterParams.category = this.dataset.category;
+          paginationConfig.currentPage = 1; // 筛选后重置到第一页
+          fetchProductData(1);
+        });
+      });
+
+      // 绑定搜索事件
+      document.getElementById('searchBtn').addEventListener('click', handleSearch);
+      document.getElementById('searchInput').addEventListener('keyup', function (e) {
+        if (e.key === 'Enter') handleSearch();
+      });
+      document.getElementById('searchInput').addEventListener('input', function () {
+        filterParams.keyword = this.value.toLowerCase().trim();
+        // 实时搜索可选择延迟加载，避免频繁请求
+        clearTimeout(this.searchTimer);
+        this.searchTimer = setTimeout(() => {
+          paginationConfig.currentPage = 1;
+          fetchProductData(1);
+        }, 500);
+      });
+
+      // 绑定分页事件
+      document.getElementById('prevPage').addEventListener('click', goToPrevPage);
+      document.getElementById('nextPage').addEventListener('click', goToNextPage);
+    }
+
+    /**
+     * 处理搜索
+     */
+    function handleSearch() {
+      filterParams.keyword = document.getElementById('searchInput').value.toLowerCase().trim();
+      paginationConfig.currentPage = 1;
+      fetchProductData(1);
+    }
+
+    /**
+     * 格式化图片URL
+     */
+    function formatImageUrl(oldImageUrl) {
+      if (!oldImageUrl || oldImageUrl === 'null' || oldImageUrl === 'undefined') {
+        return 'https://via.placeholder.com/60x60?text=暂无图片';
+      }
+      try {
+        const urlObj = new URL(oldImageUrl);
+        return `${url1}${urlObj.pathname}`;
+      } catch (e) {
+        return 'https://via.placeholder.com/60x60?text=暂无图片';
+      }
+    }
+
+    /**
+     * 请求商品数据（带分页+筛选）
+     */
+    function fetchProductData(page) {
+      const drugList = document.getElementById('drugList');
+      drugList.innerHTML = '<div class="loading">加载中...</div>';
+
+      // 拼接请求参数
+      let requestUrl = `${url1}/api/products/?page=${page}&page_size=${paginationConfig.pageSize}`;
+
+      // 追加筛选参数
+      if (filterParams.category !== 'all') {
+        requestUrl += `&category=${encodeURIComponent(filterParams.category)}`;
+      }
+      if (filterParams.keyword) {
+        requestUrl += `&keyword=${encodeURIComponent(filterParams.keyword)}`;
+      }
+
+      axios({
+        url: requestUrl,
+        method: "GET",
+        timeout: 5000
+      }).then(async (response) => {
+        console.log('商品列表接口返回：', response);
+
+        // 更新分页配置
+        paginationConfig.totalCount = response.data.count || 0;
+        paginationConfig.totalPages = Math.ceil(paginationConfig.totalCount / paginationConfig.pageSize);
+        paginationConfig.currentPage = page;
+
+        // 渲染商品列表
+        await renderDrugs(response.data.results || []);
+
+        // 渲染分页控件
+        renderPaginationControls();
+
+      }).catch(error => {
+        console.error('接口请求失败：', error);
+        drugList.innerHTML = '<div class="no-data">数据加载失败，请刷新重试</div>';
+      });
+    }
+
+    /**
+     * 渲染商品列表
+     */
+    async function renderDrugs(products) {
+      const drugList = document.getElementById('drugList');
+
+      if (products.length === 0) {
+        drugList.innerHTML = '<div class="no-data">未找到匹配的商品</div>';
+        return;
+      }
+
+      // 批量获取店铺信息
+      await Promise.all(products.map(async (product) => {
+        if (!shopMap.has(product.shop_id)) {
+          console.log('获取店铺信息，shop_id：', product.shop_id);
+          try {
+            const shopRes = await axios({
+              url: `${url1}/api/shops/${product.shop_id}/`,
+              method: 'GET',
+              timeout: 3000
+            });
+            console.log('店铺信息返回：', shopRes);
+            shopMap.set(product.shop_id, shopRes.data);
+          } catch (err) {
+            console.error(`获取店铺${product.shop_id}信息失败`, err);
+            shopMap.set(product.shop_id, {
+              name: '未知店铺',
+              description: '店铺信息获取失败',
+              address: '未知地址',
+              phone_number: '未知电话',
+              photo: null
+            });
+          }
+        }
+      }));
+
+      // 渲染商品HTML
+      drugList.innerHTML = products.map(product => {
+        const productId = product.product_id || product.id;
+        const isFavorited = favorites.includes(productId);
+        const shopInfo = shopMap.get(product.shop_id);
+
+        // 商品字段默认值
+        const productName = product.name || '未命名商品';
+        const productCategory = product.category || '其他';
+        const productPrice = product.price || '0.00';
+        const productImage = formatImageUrl(product.image) || 'https://via.placeholder.com/120x120?text=暂无图片';
+
+        // 店铺字段默认值
+        const shopName = shopInfo.name || '未知店铺';
+        const shopDesc = shopInfo.description || '暂无店铺描述';
+        const shopAddress = shopInfo.address || '未知地址';
+        const shopPhone = shopInfo.phone_number || '未知电话';
+        const shopPhoto = formatImageUrl(shopInfo.photo) || 'https://via.placeholder.com/60x60?text=店铺';
+
+        return `
+          <div class="box" data-id="${productId}" data-shop-id="${product.shop_id}">
+            <!-- 店铺信息区 -->
+            <div class="box_top">
+              <div class="box_top_left">
+                <img src="${shopPhoto}" alt="${shopName}">
+              </div>
+              <div class="box_top_right">
+                <div class="shop-name">${shopName}</div>
+                <div class="shop-desc">${shopDesc}</div>
+              </div>
+            </div>
+            
+            <!-- 商品信息区 -->
+            <div class="box_bottom">
+              <img class="product-img" src="${productImage}" alt="${productName}">
+              <div class="product-info">
+                <div class="product-name">${productName}</div>
+                <div class="product-category"><i class="fas fa-tag"></i> 分类：${productCategory}</div>
+                <div class="product-address"><i class="fas fa-map-marker-alt"></i> 店铺地址：${shopAddress}</div>
+                <div class="product-phone"><i class="fas fa-phone"></i> 联系电话：${shopPhone}</div>
+              </div>
+              <div class="product-price"><i class="fas fa-yen-sign"></i> ${productPrice}</div>
+            </div>
+          </div>
+        `;
+      }).join('');
+
+      // 绑定商品卡片点击事件
+      bindCardClickEvents();
+    }
+
+    /**
+     * 绑定商品卡片点击事件
+     */
+    function bindCardClickEvents() {
+      document.querySelectorAll('.box').forEach(card => {
+        card.addEventListener('click', function () {
+          const productId = this.dataset.id;
+          const shopId = this.dataset.shopId;
+          window.location.href = `procuctsxinxi.html?id=${productId}&shop_id=${shopId}`;
+        });
+      });
+    }
+
+    /**
+     * 渲染分页控件
+     */
+    function renderPaginationControls() {
+      const controlsContainer = document.getElementById('paginationControls');
+      const prevBtn = document.getElementById('prevPage');
+      const nextBtn = document.getElementById('nextPage');
+
+      // 清空现有页码（保留前后按钮）
+      while (controlsContainer.children.length > 2) {
+        controlsContainer.removeChild(controlsContainer.children[1]);
+      }
+
+      const totalPages = paginationConfig.totalPages;
+      const currentPage = paginationConfig.currentPage;
+
+      // 页码显示规则
+      let pageNumbers = [];
+      if (totalPages <= 5) {
+        for (let i = 1; i <= totalPages; i++) {
+          pageNumbers.push(i);
+        }
+      } else {
+        pageNumbers.push(1);
+        if (currentPage > 3) pageNumbers.push('...');
+        if (currentPage > 2) pageNumbers.push(currentPage - 2);
+        if (currentPage > 1) pageNumbers.push(currentPage - 1);
+        if (currentPage !== 1 && currentPage !== totalPages) pageNumbers.push(currentPage);
+        if (currentPage < totalPages) pageNumbers.push(currentPage + 1);
+        if (currentPage < totalPages - 1) pageNumbers.push(currentPage + 2);
+        if (currentPage < totalPages - 2) pageNumbers.push('...');
+        if (totalPages > 1) pageNumbers.push(totalPages);
+      }
+
+      // 添加页码按钮
+      pageNumbers.forEach(item => {
+        if (item === '...') {
+          const ellipsis = document.createElement('span');
+          ellipsis.className = 'ellipsis';
+          ellipsis.textContent = '...';
+          controlsContainer.insertBefore(ellipsis, nextBtn);
+        } else {
+          const pageBtn = document.createElement('button');
+          pageBtn.className = `page-btn ${item === currentPage ? 'active' : ''}`;
+          pageBtn.textContent = item;
+          pageBtn.dataset.page = item;
+          pageBtn.addEventListener('click', () => goToPage(item));
+          controlsContainer.insertBefore(pageBtn, nextBtn);
+        }
+      });
+
+      // 更新上下页按钮状态
+      prevBtn.disabled = currentPage === 1;
+      nextBtn.disabled = currentPage === totalPages;
+    }
+
+    /**
+     * 跳转到指定页码
+     */
+    function goToPage(pageNum) {
+      if (pageNum < 1 || pageNum > paginationConfig.totalPages || pageNum === paginationConfig.currentPage) {
+        return;
+      }
+      fetchProductData(pageNum);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    /**
+     * 上一页
+     */
+    function goToPrevPage() {
+      goToPage(paginationConfig.currentPage - 1);
+    }
+
+    /**
+     * 下一页
+     */
+    function goToNextPage() {
+      goToPage(paginationConfig.currentPage + 1);
+    }
+  </script>
+
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</body>
+
+</html>

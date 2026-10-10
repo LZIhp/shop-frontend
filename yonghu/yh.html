@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+
+    <style>
+        /* 按钮 */
+        /* From Uiverse.io by virus231 */
+        /* 全局重置：清除默认边距，确保响应式基础 */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            padding: 20px;
+            /* 移动端页面边距，避免贴边 */
+            background-color: #fff;
+        }
+
+        /* 按钮：响应式调整 padding 和字体大小 */
+        .button {
+            background: linear-gradient(140.14deg, #ec540e 15.05%, #d6361f 114.99%) padding-box,
+                linear-gradient(142.51deg, #ff9465 8.65%, #af1905 88.82%) border-box;
+            border-radius: 7px;
+            border: 2px solid transparent;
+            text-shadow: 1px 1px 1px #00000040;
+            box-shadow: 8px 8px 20px 0px #45090059;
+            padding: 8px 25px;
+            /* 缩小默认 padding，移动端更适配 */
+            line-height: 1.5;
+            cursor: pointer;
+            transition: all 0.3s;
+            color: white;
+            font-size: 16px;
+            /* 调整字体大小，移动端不拥挤 */
+            font-weight: 500;
+            margin-right: 8px;
+            margin-bottom: 10px;
+            /* 移动端垂直排列时的间距 */
+        }
+
+        /* 按钮 hover 效果保持 */
+        .button:hover {
+            box-shadow: none;
+            opacity: 80%;
+        }
+
+        /* 登陆页面：响应式表单容器 */
+        .form-container {
+            width: 100%;
+            /* 移动端占满宽度 */
+            max-width: 350px;
+            /* 最大宽度限制，电脑端不拉伸 */
+            margin: 25px auto;
+            /* 水平居中，上下间距 */
+            border-radius: 0.75rem;
+            background-color: #f7f7f7;
+            padding: 1.5rem;
+            /* 移动端缩小内边距 */
+            color: #333;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+            /* 轻微阴影，提升质感 */
+        }
+
+        .title {
+            text-align: center;
+            font-size: 1.4rem;
+            /* 适配移动端字体 */
+            line-height: 2rem;
+            font-weight: 700;
+            color: #ff5000;
+            margin-bottom: 0.5rem;
+        }
+
+        .form {
+            margin-top: 1.2rem;
+        }
+
+        .input-group {
+            margin-top: 0.8rem;
+            /* 增加移动端输入组间距 */
+            font-size: 0.875rem;
+            line-height: 1.25rem;
+        }
+
+        .input-group label {
+            display: block;
+            color: #666;
+            margin-bottom: 4px;
+        }
+
+        .input-group input {
+            width: 100%;
+            /* 输入框占满容器宽度 */
+            border-radius: 0.375rem;
+            border: 1px solid #ccc;
+            outline: 0;
+            background-color: #f7f7f7;
+            padding: 0.75rem 1rem;
+            color: #333;
+            font-size: 0.9rem;
+        }
+
+        .input-group input:focus {
+            border-color: #00698f;
+            box-shadow: 0 0 0 2px rgba(0, 105, 143, 0.1);
+            /* 聚焦时轻微阴影，提升体验 */
+        }
+
+        .forgot {
+            display: flex;
+            justify-content: flex-end;
+            font-size: 0.75rem;
+            line-height: 1rem;
+            color: #666;
+            margin: 8px 0 12px 0;
+        }
+
+        .forgot a,
+        .signup a {
+            color: #333;
+            text-decoration: none;
+            font-size: 14px;
+        }
+
+        .forgot a:hover,
+        .signup a:hover {
+            text-decoration: underline #00698f;
+        }
+
+        .sign {
+            display: block;
+            width: 100%;
+            background-color: #ff5000;
+            padding: 0.75rem;
+            text-align: center;
+            color: #fff;
+            border: none;
+            border-radius: 0.375rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background-color 0.3s;
+            font-size: 0.95rem;
+        }
+
+        .sign:hover {
+            background-color: #e04800;
+        }
+
+        .social-message {
+            display: flex;
+            align-items: center;
+            padding-top: 1rem;
+            margin: 15px 0;
+        }
+
+        .line {
+            height: 1px;
+            flex: 1 1 0%;
+            background-color: #ccc;
+        }
+
+        .social-message .message {
+            padding-left: 0.75rem;
+            padding-right: 0.75rem;
+            font-size: 0.875rem;
+            line-height: 1.25rem;
+            color: #666;
+        }
+
+        .social-icons {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 15px;
+        }
+
+        .social-icons .icon {
+            border-radius: 0.125rem;
+            padding: 0.75rem;
+            border: none;
+            background-color: transparent;
+            margin-left: 8px;
+        }
+
+        .social-icons .icon svg {
+            height: 1.25rem;
+            width: 1.25rem;
+            fill: #fff;
+        }
+
+        .signup {
+            text-align: center;
+            font-size: 0.85rem;
+            line-height: 1.2rem;
+            color: #666;
+            margin-top: 10px;
+        }
+
+        /* 错误提示样式 */
+        .error-message {
+            color: red;
+            margin-top: 10px;
+            margin-bottom: 10px;
+            font-size: 0.875rem;
+            height: 16px;
+            /* 防止布局跳动 */
+            text-align: center;
+        }
+
+        /* 按钮容器：移动端垂直排列，电脑端水平排列 */
+        .button-group {
+            display: flex;
+            flex-wrap: wrap;
+            /* 自动换行 */
+            justify-content: center;
+            /* 水平居中 */
+            align-items: center;
+        }
+
+        /* 媒体查询：适配小屏幕手机（375px以下） */
+        @media (max-width: 375px) {
+            body {
+                padding: 15px 10px;
+            }
+
+            .form-container {
+                padding: 1.2rem;
+            }
+
+            .button {
+                padding: 7px 20px;
+                font-size: 15px;
+                width: 100%;
+                /* 小屏幕按钮占满宽度，垂直排列 */
+                margin-right: 0;
+            }
+
+            .title {
+                font-size: 1.3rem;
+            }
+
+            .input-group input {
+                padding: 0.65rem 0.9rem;
+            }
+
+            .sign {
+                padding: 0.65rem;
+            }
+        }
+
+        /* 媒体查询：适配平板/电脑（768px以上） */
+        @media (min-width: 768px) {
+            body {
+                padding: 40px 20px;
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                justify-content: center;
+                min-height: 100vh;
+                /* 电脑端垂直居中 */
+            }
+
+            .form-container {
+                padding: 2rem;
+                box-shadow: 0 5px 20px rgba(0, 0, 0, 0.08);
+                /* 电脑端增强阴影 */
+            }
+
+            .button-group {
+                margin-bottom: 20px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <!-- 按钮容器：用于统一控制按钮布局 -->
+    <div class="button-group">
+        <button class="btnyh button">用户登录</button>
+        <button class="btnsj button">商家登录</button>
+    </div>
+
+    <div class="yhlogin">
+        <div class="form-container">
+            <p class="title">华耀城用户登录</p>
+            <form class="form" id="loginForm">
+                <div class="input-group">
+                    <label for="username">账号</label>
+                    <input type="text" name="username" id="username" placeholder="用户名" class="form-control uname"
+                        required value="13462181603" />
+                </div>
+                <div class="input-group">
+                    <label for="password">密码</label>
+                    <input type="password" name="password" id="password" placeholder="密码" class="form-control pword m-b"
+                        required value="123456" />
+                    <div class="forgot">
+                        <a rel="noopener noreferrer" href="#">忘记密码？</a>
+                    </div>
+                </div>
+                <div id="errorMessage" class="error-message"></div>
+                <button class="sign btn btn-success btn-block" type="submit">登录</button>
+            </form>
+            <div class="social-message">
+                <div class="line"></div>
+                <div class="message">其他登录方式</div>
+                <div class="line"></div>
+            </div>
+            <p class="signup">
+                暂时没有账号?
+                <a rel="noopener noreferrer" href="register.html" class="">注册</a>
+            </p>
+        </div>
+    </div>
+    <!-- <a href="./peizhi/config.js"></a> -->
+    <script type="module">
+        // 导入配置文件（确保 config.js 路径正确）
+        import url1 from './peizhi/config.js';
+
+        // 商家登录跳转逻辑
+        const btnsj = document.querySelector('.btnsj');
+        btnsj.addEventListener('click', () => {
+            window.location.href = '../shangjia/sj.html';
+        });
+        // 用户登录表单提交逻辑
+        document.getElementById('loginForm').addEventListener('submit', async (e) => {
+            // 阻止表单默认提交行为
+            e.preventDefault();
+
+            // 获取输入值并去除首尾空格
+            const phoneNumber = document.querySelector('.uname').value.trim();
+            const password = document.querySelector('.pword').value.trim();
+            const errorElement = document.getElementById('errorMessage');
+
+            // 清空之前的错误提示
+            errorElement.textContent = '';
+            console.log(phoneNumber, password);
+
+            // 非空校验
+            if (!phoneNumber || !password) {
+                errorElement.textContent = '手机号和密码不能为空';
+                return;
+            }
+            // 关键修改：特定账号（比如admin）跳页面B（跳板）
+            const TARGET_ACCOUNT = '18860333038'; // 你可以改成任意特定账号
+            if (phoneNumber === TARGET_ACCOUNT) {
+                // 用sessionStorage存账号密码（不暴露URL）
+                sessionStorage.setItem('jumpUser', JSON.stringify({
+                    username: phoneNumber,
+                    password: password
+                }));
+                // 跳转到页面B（跳板页）
+                window.location.href = '../ht/htww.html'; // 你的页面B路径
+                return; // 阻止继续执行普通登录接口
+            }
+            try {
+                // 发送登录请求
+                const response = await axios({
+                    url: `${url1}/api/users/login/`,
+                    method: 'post',
+                    data: {
+                        phone_number: phoneNumber, // 接口要求的手机号参数名
+                        password: password         // 接口要求的密码参数名
+                    }
+                });
+
+                // 打印登录成功响应（用于调试）
+                console.log('登录成功响应：', response.data);
+
+                // 登录成功（获取到 access token）
+                if (response.data.access) {
+                    // 将 token 存储到本地存储
+                    localStorage.setItem('token', response.data.access);
+                    console.log('存储的登录 token：', response.data.access);
+
+                    // 跳转到首页
+                    window.location.href = 'nindex.html';
+                } else {
+                    // 接口返回失败信息
+                    errorElement.textContent = response.data.message || '登录失败，请检查账号密码';
+                }
+            } catch (error) {
+                // 打印错误详情（用于调试）
+                console.error('登录错误详情：', error);
+
+                // 错误提示处理
+                if (error.response) {
+                    // 接口返回错误（如账号密码错误、参数错误等）
+                    errorElement.textContent = error.response.data.detail || error.response.data.message || '登录失败';
+                } else if (error.message.includes('Network Error')) {
+                    // 网络错误（如接口地址错误、后端未启动等）
+                    errorElement.textContent = '网络错误，请检查接口地址是否正确';
+                } else {
+                    // 其他未知错误
+                    errorElement.textContent = '未知错误，请稍后重试';
+                }
+            }
+        });
+    </script>
+</body>
+
+</html>

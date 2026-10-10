@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>待审核店铺列表</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+</head>
+
+<body class="bg-gray-50 min-h-screen">
+    <div class="container mx-auto px-4 py-8 max-w-6xl">
+        <h1 class="text-2xl font-bold mb-6 text-gray-800">待审核店铺列表</h1>
+        <div id="status" class="mb-6 p-4 rounded hidden"></div>
+        <div id="shopsContainer" class="space-y-4"></div>
+    </div>
+
+    <script type="module">
+        import url1 from '../peizhi/config.js';
+
+        // 恢复审核店铺列表API - 保持原样，确保能正常获取数据
+        const pendingShopsApi = `${url1}/api/admins/pending-shops/`;
+
+        // 获取token
+        const getToken = () => localStorage.getItem('adtoken');
+
+        // 显示状态信息
+        function showStatus(message, isError = false) {
+            const statusDiv = document.getElementById('status');
+            statusDiv.textContent = message;
+            statusDiv.className = `mb-6 p-4 rounded ${isError ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'}`;
+        }
+
+        // 隐藏状态信息
+        function hideStatus() {
+            document.getElementById('status').className = 'mb-6 p-4 rounded hidden';
+        }
+
+        // 渲染店铺列表 - 保持原样，确保能正常显示
+        function renderShops(shops) {
+            const container = document.getElementById('shopsContainer');
+            container.innerHTML = '';
+
+            shops.forEach(shop => {
+                const shopCard = document.createElement('div');
+                shopCard.className = 'bg-white p-4 rounded-lg shadow border border-gray-100 flex flex-col md:flex-row justify-between items-start md:items-center gap-4';
+
+                shopCard.innerHTML = `
+                    <div class="flex-1">
+                        <h3 class="font-semibold text-lg text-gray-800">${shop.name}</h3>
+                        <p class="text-gray-600 text-sm mt-1">
+                            <span class="mr-4"><i class="fa fa-map-marker text-gray-400 mr-1"></i>${shop.address}</span>
+                            <span class="mr-4"><i class="fa fa-phone text-gray-400 mr-1"></i>${shop.phone_number}</span>
+                        </p>
+                        <p class="text-gray-500 text-xs mt-2">
+                            <span class="mr-4">商户: ${shop.merchant_name}</span>
+                            <span>商户电话: ${shop.merchant_phone}</span>
+                        </p>
+                        <p class="text-gray-500 text-xs mt-1">
+                            提交时间: ${new Date(shop.created_at).toLocaleString()}
+                        </p>
+                    </div>
+                    <button class="approve-btn bg-green-500 hover:bg-green-600 text-white py-2 px-4 rounded text-sm transition-colors" 
+                            data-shop-id="${shop.shop_id}">
+                        通过
+                    </button>
+                `;
+
+                container.appendChild(shopCard);
+            });
+
+            // 为所有通过按钮添加事件监听
+            document.querySelectorAll('.approve-btn').forEach(btn => {
+                btn.addEventListener('click', handleApprove);
+            });
+        }
+
+        // 处理通过审核 - 只修改这个部分
+        async function handleApprove(event) {
+            const shopId = event.currentTarget.getAttribute('data-shop-id');
+            const token = getToken();
+
+            if (!token) {
+                showStatus('错误：未找到管理员令牌', true);
+                return;
+            }
+
+            // 禁用按钮防止重复提交
+            const btn = event.currentTarget;
+            btn.disabled = true;
+            btn.textContent = '处理中...';
+
+            try {
+                // 审核接口 - 使用正确的域名和参数
+                const response = await axios.patch(
+                    `${url1}/api/shops/${shopId}/review/`,
+                    { status: "approved" },  // 第二个接口需要的字段
+                    {
+                        headers: {
+                            'Authorization': `Bearer ${token}`,
+                            'Content-Type': 'application/json'
+                        }
+                    }
+                );
+
+                if (response.status >= 200 && response.status < 300) {
+                    showStatus('店铺审核已通过');
+                    // 移除已通过的店铺卡片
+                    btn.closest('div.bg-white').remove();
+                }
+            } catch (error) {
+                console.error('审核失败:', error);
+                const errorMsg = error.response?.data?.message || error.message || '审核失败';
+                showStatus(`审核失败: ${errorMsg}`, true);
+                // 恢复按钮状态
+                btn.disabled = false;
+                btn.textContent = '通过';
+            }
+        }
+
+        // 获取待审核店铺列表 - 保持原样，确保能正常获取
+        async function fetchPendingShops() {
+            const token = getToken();
+
+            if (!token) {
+                showStatus('错误：未找到管理员令牌', true);
+                return;
+            }
+
+            try {
+                const response = await axios.get(pendingShopsApi, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+
+                if (response.data.pending_shops && Array.isArray(response.data.pending_shops)) {
+                    renderShops(response.data.pending_shops);
+                    hideStatus();
+                } else {
+                    showStatus('数据格式不正确', true);
+                }
+            } catch (error) {
+                console.error('获取数据失败:', error);
+                const errorMsg = error.response?.data?.message || error.message || '获取数据失败';
+                showStatus(`获取数据失败: ${errorMsg}`, true);
+            }
+        }
+
+        // 页面加载时获取店铺列表
+        window.onload = fetchPendingShops;
+    </script>
+</body>
+
+</html>

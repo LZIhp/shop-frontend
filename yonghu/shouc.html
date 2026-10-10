@@ -1,0 +1,496 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>收藏页面</title>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <style>
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .favorite-item {
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+            display: flex;
+            gap: 20px;
+            align-items: flex-start;
+            transition: background-color 0.2s;
+        }
+
+        .favorite-item:hover {
+            background-color: #f9f9f9;
+        }
+
+        .favorite-img {
+            width: 120px;
+            height: 120px;
+            object-fit: cover;
+            border-radius: 4px;
+        }
+
+        .favorite-info {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .favorite-name {
+            font-size: 18px;
+            font-weight: 600;
+            margin: 0 0 10px 0;
+        }
+
+        .favorite-price {
+            color: #ff4400;
+            font-size: 16px;
+            font-weight: 600;
+            margin: 10px 0;
+        }
+
+        .favorite-detail {
+            color: #666;
+            margin: 5px 0;
+            font-size: 14px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        /* 取消收藏按钮样式 */
+        .cancel-favorite {
+            margin-top: auto;
+            /* 固定在卡片底部 */
+            padding: 8px 16px;
+            background-color: #ff4400;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background-color 0.2s;
+            align-self: flex-start;
+            /* 左对齐 */
+        }
+
+        .cancel-favorite:hover {
+            background-color: #e63900;
+        }
+
+        .cancel-favorite:disabled {
+            background-color: #ff9966;
+            cursor: not-allowed;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 50px;
+            color: #999;
+            font-size: 16px;
+        }
+
+        .loading-state {
+            text-align: center;
+            padding: 50px;
+            color: #666;
+            font-size: 16px;
+        }
+
+        /* 分页样式（和之前保持一致） */
+        .pagination {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin: 2rem 0;
+            font-size: 0.875rem;
+            color: #6B7280;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+
+        .page-btn {
+            width: 2rem;
+            height: 2rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 0.5rem;
+            border: 1px solid #E5E7EB;
+            background-color: #FFFFFF;
+            color: #6B7280;
+            font-size: 0.75rem;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        .page-btn:hover:not(:disabled) {
+            background-color: #F9FAFB;
+        }
+
+        .page-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .page-btn.active {
+            border-color: #1a5c9e;
+            background-color: #1a5c9e;
+            color: #FFFFFF;
+        }
+
+        .ellipsis {
+            width: 2rem;
+            height: 2rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #6B7280;
+            font-size: 0.75rem;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container" id="favorites-container"></div>
+
+    <!-- 分页控件 -->
+    <div class="pagination" id="paginationControls">
+        <button class="page-btn" id="prevPage" disabled>
+            ←
+        </button>
+        <!-- 页码通过JS渲染 -->
+        <button class="page-btn active">1</button>
+        <button class="page-btn" id="nextPage" disabled>
+            →
+        </button>
+    </div>
+
+    <script type="module">
+        import url1 from './peizhi/config.js';
+
+        // 分页配置（和之前保持一致）
+        const paginationConfig = {
+            pageSize: 10, // 每页条数
+            currentPage: 1,
+            totalCount: 0, // 总数据条数
+            totalPages: 0  // 总页数
+        };
+
+        document.addEventListener('DOMContentLoaded', function () {
+            const token = localStorage.getItem('token');
+            const container = document.getElementById('favorites-container');
+
+            // 检查token，无token跳转到登录页
+            if (!token || token.trim() === '') {
+                top.location.href = './yh.html';
+                return;
+            }
+
+            // 初始化
+            init();
+
+            /**
+             * 初始化函数
+             */
+            function init() {
+                // 加载第一页收藏数据
+                getFavorites(paginationConfig.currentPage);
+
+                // 绑定分页事件
+                document.getElementById('prevPage').addEventListener('click', goToPrevPage);
+                document.getElementById('nextPage').addEventListener('click', goToNextPage);
+            }
+
+            /**
+             * 格式化图片URL
+             */
+            function formatImageUrl(oldImageUrl) {
+                if (!oldImageUrl || oldImageUrl === 'null' || oldImageUrl === 'undefined') {
+                    return './img/1.jpg'; // 备用图
+                }
+                try {
+                    const urlObj = new URL(oldImageUrl);
+                    return `${url1}${urlObj.pathname}`;
+                } catch (e) {
+                    return './img/1.jpg'; // 加载失败备用图
+                }
+            }
+
+            /**
+             * 获取收藏列表（带分页）
+             */
+            function getFavorites(page) {
+                // 初始化显示加载状态
+                container.innerHTML = '<div class="loading-state"><p>加载中...</p></div>';
+
+                // 拼接请求参数（带分页）
+                let requestUrl = `${url1}/api/users/favorites/?page=${page}&page_size=${paginationConfig.pageSize}`;
+
+                axios({
+                    url: requestUrl,
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    }
+                }).then(result => {
+                    console.log('收藏数据详情：', result.data.results);
+                    const favorites = result.data.results || [];
+
+                    // 更新分页配置
+                    paginationConfig.totalCount = result.data.count || 0;
+                    paginationConfig.totalPages = Math.ceil(paginationConfig.totalCount / paginationConfig.pageSize);
+                    paginationConfig.currentPage = page;
+
+                    // 渲染收藏列表
+                    renderFavorites(favorites);
+
+                    // 渲染分页控件
+                    renderPaginationControls();
+
+                }).catch(error => {
+                    console.error('获取收藏数据失败：', error);
+                    container.innerHTML = `
+                        <div class="empty-state" style="color: #ff4400;">
+                            <p>数据加载失败</p>
+                            <button onclick="window.location.reload()" style="margin-top:10px;padding:8px 16px;border:none;border-radius:4px;background:#ff4400;color:white;cursor:pointer;">
+                                点击重试
+                            </button>
+                        </div>
+                    `;
+                });
+            }
+
+            /**
+             * 渲染收藏列表
+             */
+            function renderFavorites(favorites) {
+                const container = document.getElementById('favorites-container');
+
+                if (Array.isArray(favorites) && favorites.length > 0) {
+                    let html = '';
+                    favorites.forEach(item => {
+                        // 解构数据，避免重复访问属性
+                        const { favorite_id, product } = item;
+                        const {
+                            name: productName = '未命名商品',
+                            price = '0.00',
+                            shop_name: shopName = '未知店铺',
+                            category = '未分类',
+                            description = '无描述',
+                            image: imageUrl = './img/1.jpg',
+                            product_id: productId = '',
+                            created_at: createdAt = ''
+                        } = product || {};
+
+                        // 格式化时间
+                        const formatTime = createdAt
+                            ? new Date(createdAt).toLocaleString('zh-CN', {
+                                year: 'numeric',
+                                month: '2-digit',
+                                day: '2-digit',
+                                hour: '2-digit',
+                                minute: '2-digit',
+                                second: '2-digit'
+                            })
+                            : '未知时间';
+
+                        // 价格格式化（确保保留两位小数）
+                        const formatPrice = Number(price).toFixed(2);
+
+                        html += `
+                            <div class="favorite-item" data-favorite-id="${favorite_id}">
+                                <img 
+                                    src="${formatImageUrl(imageUrl)}" 
+                                    alt="${productName}" 
+                                    class="favorite-img"
+                                    onerror="this.src='./img/1.jpg'"  <!-- 图片加载失败备用图 -->
+                                >
+                                <div class="favorite-info">
+                                    <h3 class="favorite-name">${productName}</h3>
+                                    <div class="favorite-price">价格：¥${formatPrice}</div>
+                                    <div class="favorite-detail">店铺：${shopName}</div>
+                                    <div class="favorite-detail">分类：${category}</div>
+                                    <div class="favorite-detail">描述：${description}</div>
+                                    <div class="favorite-detail">收藏时间：${formatTime}</div>
+                                    <button class="cancel-favorite" data-id="${favorite_id}" data-product-id="${productId}">
+                                        取消收藏
+                                    </button>
+                                </div>
+                            </div>
+                        `;
+                    });
+                    container.innerHTML = html;
+
+                    // 绑定取消收藏事件
+                    bindCancelButtonEvents();
+                } else {
+                    container.innerHTML = '<div class="empty-state"><p>暂无收藏商品</p></div>';
+                }
+            }
+
+            /**
+             * 绑定取消收藏按钮事件
+             */
+            function bindCancelButtonEvents() {
+                const cancelButtons = document.querySelectorAll('.cancel-favorite');
+                cancelButtons.forEach(button => {
+                    button.addEventListener('click', async function (e) {
+                        e.stopPropagation();
+
+                        const favoriteId = this.getAttribute('data-id');
+                        const cardElement = this.closest('.favorite-item');
+                        const button = this;
+
+                        // 防止重复点击
+                        if (button.disabled) return;
+
+                        if (!favoriteId) {
+                            alert('收藏记录不存在，无法取消收藏');
+                            return;
+                        }
+
+                        if (confirm('确定要取消收藏该商品吗？')) {
+                            // 禁用按钮，显示加载状态
+                            button.disabled = true;
+                            button.textContent = '取消中...';
+
+                            try {
+                                await deleteFavorite(favoriteId, cardElement);
+                            } catch (error) {
+                                // 恢复按钮状态
+                                button.disabled = false;
+                                button.textContent = '取消收藏';
+                            }
+                        }
+                    });
+                });
+            }
+
+            /**
+             * 取消收藏
+             */
+            async function deleteFavorite(favoriteId, cardElement) {
+                const token = localStorage.getItem('token');
+                console.log('取消收藏的ID：', favoriteId);
+                console.log('请求token：', token);
+
+                try {
+                    // 路径参数传递ID
+                    const response = await axios({
+                        url: `${url1}/api/users/favorites/${favoriteId}/`,
+                        method: "DELETE",
+                        headers: {
+                            "Content-Type": "application/json",
+                            Authorization: `Bearer ${token}`
+                        },
+                        timeout: 5000
+                    });
+
+                    console.log('取消收藏成功：', response.data);
+                    // 重新加载当前页数据（保证分页数据准确）
+                    getFavorites(paginationConfig.currentPage);
+                    alert('取消收藏成功！');
+
+                } catch (error) {
+                    console.error('取消收藏失败：', error);
+                    // 针对405错误的额外提示
+                    const errorMsg = error.response?.status === 405
+                        ? '接口不支持该方法，请检查后端接口配置'
+                        : error.response?.data?.message || error.message || '取消收藏失败，请稍后重试';
+                    alert(errorMsg);
+                    throw error; // 抛出错误，让调用方处理
+                }
+            }
+
+            /**
+             * 渲染分页控件
+             */
+            function renderPaginationControls() {
+                const controlsContainer = document.getElementById('paginationControls');
+                const prevBtn = document.getElementById('prevPage');
+                const nextBtn = document.getElementById('nextPage');
+
+                // 清空现有页码（保留前后按钮）
+                while (controlsContainer.children.length > 2) {
+                    controlsContainer.removeChild(controlsContainer.children[1]);
+                }
+
+                const totalPages = paginationConfig.totalPages;
+                const currentPage = paginationConfig.currentPage;
+
+                // 页码显示规则
+                let pageNumbers = [];
+                if (totalPages <= 5) {
+                    for (let i = 1; i <= totalPages; i++) {
+                        pageNumbers.push(i);
+                    }
+                } else {
+                    pageNumbers.push(1);
+                    if (currentPage > 3) pageNumbers.push('...');
+                    if (currentPage > 2) pageNumbers.push(currentPage - 2);
+                    if (currentPage > 1) pageNumbers.push(currentPage - 1);
+                    if (currentPage !== 1 && currentPage !== totalPages) pageNumbers.push(currentPage);
+                    if (currentPage < totalPages) pageNumbers.push(currentPage + 1);
+                    if (currentPage < totalPages - 1) pageNumbers.push(currentPage + 2);
+                    if (currentPage < totalPages - 2) pageNumbers.push('...');
+                    if (totalPages > 1) pageNumbers.push(totalPages);
+                }
+
+                // 添加页码按钮
+                pageNumbers.forEach(item => {
+                    if (item === '...') {
+                        const ellipsis = document.createElement('span');
+                        ellipsis.className = 'ellipsis';
+                        ellipsis.textContent = '...';
+                        controlsContainer.insertBefore(ellipsis, nextBtn);
+                    } else {
+                        const pageBtn = document.createElement('button');
+                        pageBtn.className = `page-btn ${item === currentPage ? 'active' : ''}`;
+                        pageBtn.textContent = item;
+                        pageBtn.dataset.page = item;
+                        pageBtn.addEventListener('click', () => goToPage(item));
+                        controlsContainer.insertBefore(pageBtn, nextBtn);
+                    }
+                });
+
+                // 更新上下页按钮状态
+                prevBtn.disabled = currentPage === 1;
+                nextBtn.disabled = currentPage === totalPages;
+            }
+
+            /**
+             * 跳转到指定页码
+             */
+            function goToPage(pageNum) {
+                if (pageNum < 1 || pageNum > paginationConfig.totalPages || pageNum === paginationConfig.currentPage) {
+                    return;
+                }
+                getFavorites(pageNum);
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            }
+
+            /**
+             * 上一页
+             */
+            function goToPrevPage() {
+                goToPage(paginationConfig.currentPage - 1);
+            }
+
+            /**
+             * 下一页
+             */
+            function goToNextPage() {
+                goToPage(paginationConfig.currentPage + 1);
+            }
+        });
+    </script>
+</body>
+
+</html>

@@ -1,0 +1,622 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link href="https://cdn.bootcdn.net/ajax/libs/twitter-bootstrap/4.6.0/css/bootstrap.css" rel="stylesheet" />
+  <script src="https://cdn.bootcdn.net/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
+  <script src="https://cdn.bootcdn.net/ajax/libs/twitter-bootstrap/4.6.0/js/bootstrap.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+  <title>搜索切换</title>
+  <script src="https://www.jq22.com/jquery/1.9.1/jquery.min.js"></script>
+
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      list-style: none;
+      box-sizing: border-box;
+      font-family: "PingFang SC", "Microsoft YaHei", sans-serif;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+        Helvetica, Arial, sans-serif;
+      background-color: #f5f5f5;
+      color: #333;
+    }
+
+    .container {
+      padding: 8px;
+    }
+
+    .waterfall {
+      display: flex;
+      justify-content: space-between;
+    }
+
+    .column {
+      width: 49%;
+    }
+
+    .item {
+      background: white;
+      border-radius: 10px;
+      overflow: hidden;
+      margin-bottom: 8px;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    }
+
+    .item-img {
+      width: 100%;
+      height: auto;
+      display: block;
+    }
+
+    .item-info {
+      padding: 10px;
+    }
+
+    .item-title {
+      font-size: 14px;
+      line-height: 1.4;
+      display: -webkit-box;
+      -webkit-box-orient: vertical;
+      -webkit-line-clamp: 2;
+      overflow: hidden;
+      margin-bottom: 6px;
+      color: #333;
+    }
+
+    .item-price {
+      color: #ff5000;
+      font-size: 16px;
+      font-weight: bold;
+    }
+
+    .item-sales {
+      font-size: 12px;
+      color: #999;
+      margin-top: 4px;
+    }
+
+    .item-shop {
+      display: flex;
+      align-items: center;
+      margin-top: 8px;
+      font-size: 12px;
+      color: #666;
+    }
+
+    .shop-avatar {
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      margin-right: 5px;
+    }
+
+    /* 搜索框 */
+    .search-container {
+      width: 100%;
+      max-width: 800px;
+      margin: 0 auto;
+      margin-bottom: 20px;
+      display: flex;
+      position: relative;
+    }
+
+    .search-box {
+      display: flex;
+      flex: 1;
+      height: 40px;
+    }
+
+    .search-input {
+      flex: 1;
+      padding: 10px 15px;
+      border: 2px solid #ff5000;
+      border-right: none;
+      outline: none;
+      font-size: 14px;
+    }
+
+    .search-input::placeholder {
+      color: #999;
+    }
+
+    .search-btn {
+      width: 100px;
+      background-color: #ff5000;
+      color: white;
+      border: none;
+      font-size: 16px;
+      font-weight: bold;
+      cursor: pointer;
+      border-radius: 0 4px 4px 0;
+    }
+
+    .search-btn:hover {
+      background-color: #ff5000;
+    }
+
+    /* 轮播图 */
+    .linbo {
+      height: 300px;
+      margin: 20px auto;
+    }
+
+    .carousel-inner .carousel-item img {
+      height: 100%;
+      object-fit: cover;
+    }
+
+    /* 返回顶端样式 */
+    .back-to-top {
+      position: fixed;
+      bottom: clamp(20px, 5vh, 30px);
+      left: 50%;
+      transform: translateX(-50%);
+      width: clamp(40px, 10vw, 50px);
+      height: clamp(40px, 10vw, 50px);
+      background-color: #007bff;
+      color: white;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: clamp(16px, 3vw, 20px);
+      cursor: pointer;
+      opacity: 0;
+      visibility: hidden;
+      transition: opacity 0.3s, visibility 0.3s, transform 0.2s;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+      z-index: 1000;
+      pointer-events: none;
+    }
+
+    .back-to-top.show {
+      opacity: 1;
+      visibility: visible;
+      pointer-events: auto;
+    }
+
+    .back-to-top:hover {
+      background-color: #0056b3;
+      transform: translateX(-50%) scale(1.05);
+    }
+
+    /* 分页样式（统一风格） */
+    .pagination {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      margin: 2rem 0;
+      font-size: 0.875rem;
+      color: #6B7280;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+    }
+
+    .page-btn {
+      width: 2rem;
+      height: 2rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 0.5rem;
+      border: 1px solid #E5E7EB;
+      background-color: #FFFFFF;
+      color: #6B7280;
+      font-size: 0.75rem;
+      transition: all 0.3s ease;
+      cursor: pointer;
+    }
+
+    .page-btn:hover:not(:disabled) {
+      background-color: #F9FAFB;
+    }
+
+    .page-btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    .page-btn.active {
+      border-color: #165DFF;
+      background-color: #165DFF;
+      color: #FFFFFF;
+    }
+
+    .ellipsis {
+      width: 2rem;
+      height: 2rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #6B7280;
+      font-size: 0.75rem;
+    }
+
+    /* 加载状态 */
+    .loading-state {
+      padding: 2rem 0;
+      text-align: center;
+      color: #6B7280;
+      grid-column: 1 / -1;
+    }
+
+    .loading-state i {
+      font-size: 2rem;
+      margin-bottom: 1rem;
+      display: block;
+      animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+      from {
+        transform: rotate(0deg);
+      }
+
+      to {
+        transform: rotate(360deg);
+      }
+    }
+
+    /* 空数据状态 */
+    .empty-state {
+      padding: 4rem 0;
+      text-align: center;
+      color: #6B7280;
+    }
+
+    .empty-state i {
+      font-size: 3rem;
+      margin-bottom: 1rem;
+      display: block;
+    }
+  </style>
+</head>
+
+<body>
+  <!-- 返回顶部按钮 -->
+  <div class="back-to-top" id="backToTop">
+    <i class="fas fa-arrow-up"></i>
+  </div>
+
+  <!-- 搜索框 -->
+  <div class="search-container">
+    <div class="search-box">
+      <input type="text" class="search-input" placeholder="请输入您要搜索的内容" />
+      <button class="search-btn">搜索</button>
+    </div>
+  </div>
+
+  <!-- 轮播图 -->
+  <div class="container">
+    <div id="carouselExampleIndicators" class="carousel slide" data-ride="carousel">
+      <ol class="carousel-indicators">
+        <li data-target="#carouselExampleIndicators" data-slide-to="0" class="active"></li>
+        <li data-target="#carouselExampleIndicators" data-slide-to="1"></li>
+        <li data-target="#carouselExampleIndicators" data-slide-to="2"></li>
+      </ol>
+      <div class="carousel-inner">
+        <div class="carousel-item active">
+          <img src="../img/aadb26a867e8257b044ce775b5320a5d.png" class="d-block w-100" alt="轮播图1" />
+        </div>
+        <div class="carousel-item">
+          <img src="../img/aadb26a867e8257b044ce775b5320a5d.png" class="d-block w-100" alt="轮播图2" />
+        </div>
+        <div class="carousel-item">
+          <img src="../img/aadb26a867e8257b044ce775b5320a5d.png" class="d-block w-100" alt="轮播图3" />
+        </div>
+      </div>
+      <a class="carousel-control-prev" href="#carouselExampleIndicators" role="button" data-slide="prev">
+        <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+        <span class="sr-only">Previous</span>
+      </a>
+      <a class="carousel-control-next" href="#carouselExampleIndicators" role="button" data-slide="next">
+        <span class="carousel-control-next-icon" aria-hidden="true"></span>
+        <span class="sr-only">Next</span>
+      </a>
+    </div>
+  </div>
+
+  <!-- 瀑布流容器 -->
+  <div class="container">
+    <div class="waterfall" id="waterfall">
+      <div class="column" id="column1"></div>
+      <div class="column" id="column2"></div>
+    </div>
+  </div>
+
+  <!-- 分页控件 -->
+  <div class="pagination" id="paginationControls">
+    <button class="page-btn" id="prevPage" disabled>
+      <i class="fa fa-chevron-left"></i>
+    </button>
+    <!-- 页码通过JS渲染 -->
+    <button class="page-btn active">1</button>
+    <button class="page-btn" id="nextPage" disabled>
+      <i class="fa fa-chevron-right"></i>
+    </button>
+  </div>
+
+  <!-- 引入Font Awesome -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+
+  <script type="module">
+    import url1 from "./peizhi/config.js";
+
+    // 分页配置（后端分页）
+    const paginationConfig = {
+      pageSize: 10, // 每页条数（和后端约定）
+      currentPage: 1,
+      totalCount: 0, // 总数据条数（后端返回count）
+      totalPages: 0  // 总页数（计算得出）
+    };
+
+    // 店铺信息缓存
+    const shopCache = new Map();
+
+    // 格式化图片URL
+    function formatImageUrl(oldImageUrl) {
+      if (!oldImageUrl || oldImageUrl.trim() === '') {
+        return '../img/default-shop-avatar.png';
+      }
+      try {
+        const urlObj = new URL(oldImageUrl);
+        return `${url1}${urlObj.pathname}`;
+      } catch (e) {
+        console.error('图片URL格式错误:', e);
+        return '../img/个人信息.png';
+      }
+    }
+
+    // 通过shop_id获取店铺信息
+    function getShopInfo(shop_id) {
+      return new Promise((resolve) => {
+        if (shopCache.has(shop_id)) {
+          resolve(shopCache.get(shop_id));
+          return;
+        }
+        axios({
+          url: `${url1}/api/shops/${shop_id}/`,
+          method: "GET",
+          timeout: 5000,
+        })
+          .then((response) => {
+            const shopData = response.data;
+            shopCache.set(shop_id, shopData);
+            resolve(shopData);
+          })
+          .catch(() => {
+            resolve({ name: "未知店铺", photo: "" });
+          });
+      });
+    }
+
+    // 渲染商品到瀑布流
+    async function renderItems(productList) {
+      const column1 = document.getElementById("column1");
+      const column2 = document.getElementById("column2");
+
+      // 清空当前列内容
+      column1.innerHTML = '';
+      column2.innerHTML = '';
+
+      // 记录列高度
+      let col1Height = 0;
+      let col2Height = 0;
+
+      // 空数据处理
+      if (!productList || productList.length === 0) {
+        const emptyHtml = `
+          <div class="empty-state">
+            <i class="fa fa-box-open"></i>
+            <p class="text-lg">暂无商品数据</p>
+          </div>
+        `;
+        column1.innerHTML = emptyHtml;
+        return;
+      }
+
+      // 渲染商品
+      for (const item of productList) {
+        const shopInfo = await getShopInfo(item.shop_id);
+
+        const itemElement = document.createElement("div");
+        itemElement.className = "item";
+        itemElement.innerHTML = `
+          <img src="${formatImageUrl(item.image)}" class="item-img" alt="${item.category || item.name}">
+          <div class="item-info">
+            <div class="item-title">${item.name || '未知商品'}</div>
+            <div class="item-price">${item.description || '暂无描述'}</div>
+            <div class="item-sales">${item.shop_name || '-'}</div>
+            <div class="item-shop">
+              <img src="${formatImageUrl(shopInfo.photo)}" class="shop-avatar">
+              <span>${shopInfo.name || '未知店铺'}</span>
+            </div>
+          </div>
+        `;
+
+        // 商品点击事件
+        itemElement.addEventListener("click", function () {
+          window.location.href = `procuctsxinxi.html?id=${item.product_id}&shop_id=${item.shop_id}`;
+        });
+
+        // 添加到较矮的列
+        if (col1Height <= col2Height) {
+          column1.appendChild(itemElement);
+          col1Height += itemElement.offsetHeight;
+        } else {
+          column2.appendChild(itemElement);
+          col2Height += itemElement.offsetHeight;
+        }
+      }
+    }
+
+    // 请求商品数据（带分页）
+    function fetchProductData(page) {
+      // 显示加载状态
+      const column1 = document.getElementById("column1");
+      column1.innerHTML = `
+        <div class="loading-state">
+          <i class="fa fa-spinner"></i>
+          <p>正在加载商品数据...</p>
+        </div>
+      `;
+      document.getElementById("column2").innerHTML = '';
+
+      // 拼接分页请求参数
+      const requestUrl = `${url1}/api/products/?page=${page}&page_size=${paginationConfig.pageSize}`;
+
+      axios({
+        url: requestUrl,
+        method: "GET",
+      }).then((result) => {
+        console.log('商品接口返回：', result);
+
+        // 更新分页配置
+        paginationConfig.totalCount = result.data.count;
+        paginationConfig.totalPages = Math.ceil(paginationConfig.totalCount / paginationConfig.pageSize);
+        paginationConfig.currentPage = page;
+
+        // 渲染商品列表
+        renderItems(result.data.results);
+
+        // 渲染分页控件
+        renderPaginationControls();
+      }).catch(error => {
+        console.error('商品数据请求失败：', error);
+        column1.innerHTML = `
+          <div class="empty-state">
+            <i class="fa fa-exclamation-circle" style="color: #F53F3F;"></i>
+            <p class="text-lg">商品数据加载失败，请刷新重试</p>
+          </div>
+        `;
+      });
+    }
+
+    // 渲染分页控件
+    function renderPaginationControls() {
+      const controlsContainer = document.getElementById('paginationControls');
+      const prevBtn = document.getElementById('prevPage');
+      const nextBtn = document.getElementById('nextPage');
+
+      // 清空现有页码（保留前后按钮）
+      while (controlsContainer.children.length > 2) {
+        controlsContainer.removeChild(controlsContainer.children[1]);
+      }
+
+      const totalPages = paginationConfig.totalPages;
+      const currentPage = paginationConfig.currentPage;
+
+      // 页码显示规则
+      let pageNumbers = [];
+      if (totalPages <= 5) {
+        for (let i = 1; i <= totalPages; i++) {
+          pageNumbers.push(i);
+        }
+      } else {
+        pageNumbers.push(1);
+        if (currentPage > 3) pageNumbers.push('...');
+        if (currentPage > 2) pageNumbers.push(currentPage - 2);
+        if (currentPage > 1) pageNumbers.push(currentPage - 1);
+        if (currentPage !== 1 && currentPage !== totalPages) pageNumbers.push(currentPage);
+        if (currentPage < totalPages) pageNumbers.push(currentPage + 1);
+        if (currentPage < totalPages - 1) pageNumbers.push(currentPage + 2);
+        if (currentPage < totalPages - 2) pageNumbers.push('...');
+        if (totalPages > 1) pageNumbers.push(totalPages);
+      }
+
+      // 添加页码按钮
+      pageNumbers.forEach(item => {
+        if (item === '...') {
+          const ellipsis = document.createElement('span');
+          ellipsis.className = 'ellipsis';
+          ellipsis.textContent = '...';
+          controlsContainer.insertBefore(ellipsis, nextBtn);
+        } else {
+          const pageBtn = document.createElement('button');
+          pageBtn.className = `page-btn ${item === currentPage ? 'active' : ''}`;
+          pageBtn.textContent = item;
+          pageBtn.dataset.page = item;
+          pageBtn.addEventListener('click', () => goToPage(item));
+          controlsContainer.insertBefore(pageBtn, nextBtn);
+        }
+      });
+
+      // 更新上下页按钮状态
+      prevBtn.disabled = currentPage === 1;
+      nextBtn.disabled = currentPage === totalPages;
+    }
+
+    // 跳转到指定页码
+    function goToPage(pageNum) {
+      if (pageNum < 1 || pageNum > paginationConfig.totalPages || pageNum === paginationConfig.currentPage) {
+        return;
+      }
+      fetchProductData(pageNum);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    // 上一页
+    function goToPrevPage() {
+      goToPage(paginationConfig.currentPage - 1);
+    }
+
+    // 下一页
+    function goToNextPage() {
+      goToPage(paginationConfig.currentPage + 1);
+    }
+
+    // 页面初始化
+    document.addEventListener('DOMContentLoaded', function () {
+      // 首次加载第一页数据
+      fetchProductData(paginationConfig.currentPage);
+
+      // 绑定分页事件
+      document.getElementById('prevPage').addEventListener('click', goToPrevPage);
+      document.getElementById('nextPage').addEventListener('click', goToNextPage);
+
+      // 搜索框跳转
+      document.querySelector(".search-input").addEventListener("click", () => {
+        window.location.href = "./search.html";
+      });
+      document.querySelector(".search-btn").addEventListener("click", () => {
+        window.location.href = "./search.html";
+      });
+    });
+  </script>
+
+  <!-- 返回顶部功能 -->
+  <script>
+    const backToTopBtn = document.getElementById("backToTop");
+
+    function toggleBackToTopButton() {
+      if (window.pageYOffset > 300) {
+        backToTopBtn.classList.add("show");
+      } else {
+        backToTopBtn.classList.remove("show");
+      }
+    }
+
+    function scrollToTop() {
+      const scrollToTop = window.setInterval(function () {
+        const position = window.pageYOffset;
+        if (position > 0) {
+          window.scrollTo(0, position - Math.max(1, Math.floor(position / 10)));
+        } else {
+          window.clearInterval(scrollToTop);
+        }
+      }, 16);
+    }
+
+    backToTopBtn.addEventListener("click", scrollToTop);
+    window.addEventListener("scroll", toggleBackToTopButton);
+    toggleBackToTopButton();
+  </script>
+</body>
+
+</html>

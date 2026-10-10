@@ -1,0 +1,63 @@
+<!-- 页面B：htww.html（完全替换原有代码，变成纯跳板） -->
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8">
+    <title>跳板页</title>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+</head>
+
+<body>
+    <script type="module">
+        // 1. 导入配置（你的原有路径）
+        import url1 from '../peizhi/config.js';
+
+        // 2. 页面加载后立即执行（无延迟）
+        window.onload = async function () {
+            // 读取页面A传递的账号密码
+            const userStr = sessionStorage.getItem('jumpUser');
+            if (!userStr) {
+                // 未获取到参数，跳回登录页
+                alert('请先通过指定账号登录！');
+                window.location.href = '../yonghu/yt.html'; // 你的页面A路径
+                return;
+            }
+            const { username, password } = JSON.parse(userStr);
+            console.log(username, password);
+            // 3. 立即调用管理员登录接口（无显示，后台执行）
+            try {
+                const response = await axios({
+                    url: `${url1}/api/admins/login/`, // 管理员接口
+                    method: 'post',
+                    data: { phone_number: username, password: password }, // 接口参数
+                    headers: { "Content-Type": "application/json" }
+                });
+
+                // 4. 接口成功：存token→跳管理员首页（你的目标页）
+                if (response.data.access) {
+                    console.log(response.data.access);
+                    localStorage.setItem('adtoken', response.data.access);
+                    sessionStorage.setItem('adminToken', response.data.access);
+                    sessionStorage.removeItem('jumpUser'); // 清除临时参数
+
+                    window.location.href = './index.html'; // 改成你的管理员首页路径
+                } else {
+                    // 接口返回失败，跳回登录页
+                    console.log(username, password);
+
+                    alert('管理员登录失败：' + (response.data.message || '未知错误'));
+                    window.location.href = '../yonghu/yh.html';
+                }
+            } catch (error) {
+                // 接口请求失败，跳回登录页
+                console.log(username, password);
+                console.error('跳板页接口错误：', error);
+                alert('登录失败：' + (error.response?.data?.detail || '网络错误'));
+                // window.location.href = '../yonghu/yh.html';
+            }
+        };
+    </script>
+</body>
+
+</html>

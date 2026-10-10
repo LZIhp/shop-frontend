@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>个人中心</title>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: "PingFang SC", "Microsoft YaHei", sans-serif;
+        }
+
+        body {
+            background-color: #f8f9fa;
+            padding: 20px 0;
+        }
+
+        .box {
+            width: 100%;
+            max-width: 500px;
+            min-height: 90vh;
+            background-color: #ffffff;
+            border-radius: 16px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+            margin: 0 auto;
+            padding: 30px 20px;
+        }
+
+        .div1 {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .touxiang {
+            border-radius: 50%;
+            object-fit: cover;
+            width: 100px;
+            height: 100px;
+            margin: 0 auto 15px;
+            border: 4px solid #f0f7ff;
+            box-shadow: 0 2px 10px rgba(0, 122, 255, 0.1);
+        }
+
+        .div2 {
+            width: 90%;
+            height: 110px;
+            margin: 0 auto 35px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            padding: 0 25px;
+            background-color: #f0f7ff;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0, 122, 255, 0.08);
+        }
+
+        .div2_xinxi {
+            display: flex;
+            align-items: center;
+            margin: 10px 0;
+            font-size: 16px;
+        }
+
+        .div2_xinxi span:first-child {
+            width: 70px;
+            font-weight: 500;
+            color: #333333;
+        }
+
+        .div2_xinxi span:last-child {
+            color: #666666;
+            padding: 2px 0;
+        }
+
+        .xinxitiao {
+            display: flex;
+            align-items: center;
+            width: 90%;
+            margin: 0 auto 1px;
+            padding: 16px 25px;
+            background-color: #ffffff;
+            border-bottom: 1px solid #f5f5f5;
+            border-radius: 8px;
+            transition: all 0.2s ease;
+            cursor: pointer;
+            text-decoration: none;
+            /* 去掉a标签下划线 */
+        }
+
+        .xinxitiao:hover {
+            background-color: #f8f9fa;
+            transform: translateX(3px);
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.03);
+        }
+
+        .xinxitiao:last-child {
+            border-bottom: none;
+        }
+
+        .xxt_img {
+            width: 26px;
+            height: 26px;
+            margin-right: 15px;
+        }
+
+        .widhei {
+            font-size: 17px;
+            color: #333333;
+            font-weight: 400;
+        }
+
+        /* 响应式优化 */
+        @media (max-width: 480px) {
+            .box {
+                padding: 20px 15px;
+                border-radius: 12px;
+                box-shadow: 0 2px 15px rgba(0, 0, 0, 0.04);
+            }
+
+            .touxiang {
+                width: 90px;
+                height: 90px;
+            }
+
+            .div2 {
+                width: 95%;
+                padding: 0 20px;
+            }
+
+            .xinxitiao {
+                width: 95%;
+                padding: 14px 20px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="box">
+        <!-- 头像区域 -->
+        <div class="div1">
+            <a href="./gengxintoux.html"><img src="../img/1.jpg" alt="头像" class="touxiang" id="touximg"></a>
+        </div>
+
+        <!-- 核心信息卡片 -->
+        <div class="div2">
+            <div class="div2_xinxi"><span>昵称：</span><span id="zhanghao"></span></div>
+            <div class="div2_xinxi"><span>手机号：</span><span id="phone_number"></span></div>
+        </div>
+
+        <!-- 功能信息条 -->
+        <a href="./personalinfo.html"> <!-- 补充个人信息页面链接 -->
+            <div class="xinxitiao">
+                <img class="xxt_img" src="../img/个人信息.png" alt="个人信息图标">
+                <div class="widhei">个人信息</div>
+            </div>
+        </a>
+        <a href="./changepassword.html">
+            <div class="xinxitiao">
+                <img class="xxt_img" src="../img/个人信息.png" alt="账号安全图标"> <!-- 建议使用不同图标区分 -->
+                <div class="widhei">修改密码</div>
+            </div>
+        </a>
+    </div>
+
+    <script type="module">
+        // 修复：确保导入路径正确（根据实际项目结构调整）
+        import url1 from '../peizhi/config.js';
+
+        // 1. 先获取DOM元素（修复变量声明顺序问题）
+        const touximg = document.getElementById('touximg');
+        const zhanghao = document.getElementById('zhanghao');
+        const phone_number = document.getElementById('phone_number');
+
+        // 2. 获取token
+        const token = localStorage.getItem('token');
+        console.log('当前token:', token);
+
+        // 替换原有formatImageUrl函数，彻底解决Invalid URL错误
+        function formatImageUrl(oldImageUrl) {
+            // 兜底1：空值/无效值直接返回默认头像
+            if (!oldImageUrl || oldImageUrl === 'null' || oldImageUrl.trim() === '') {
+                return '../img/默认头像.png'; // 替换为你的默认头像实际路径
+            }
+
+            try {
+                // 场景1：如果是完整URL（包含http/https），正常解析
+                if (oldImageUrl.startsWith('http://') || oldImageUrl.startsWith('https://')) {
+                    const urlObj = new URL(oldImageUrl);
+                    return `${url1}${urlObj.pathname}`; // 按你的业务逻辑拼接
+                }
+                // 场景2：如果是相对路径（如/upload/1.jpg），直接拼接域名
+                else {
+                    // 避免重复拼接（比如url1末尾已有/，oldImageUrl开头也有/）
+                    const baseUrl = url1.endsWith('/') ? url1 : `${url1}/`;
+                    const fullUrl = oldImageUrl.startsWith('/')
+                        ? `${baseUrl}${oldImageUrl.slice(1)}`
+                        : `${baseUrl}${oldImageUrl}`;
+                    return fullUrl;
+                }
+            } catch (e) {
+                // 兜底2：任何异常都返回默认头像
+                console.warn('头像URL处理失败，使用默认头像:', e, '原始URL:', oldImageUrl);
+                return '../img/默认头像.png';
+            }
+        }
+
+        // 4. 解析URL参数函数
+        function getUrlParams() {
+            const params = {};
+            const queryString = window.location.search.slice(1);
+            if (!queryString) return params;
+
+            const queryArr = queryString.split('&');
+            queryArr.forEach(item => {
+                const [key, value] = item.split('=');
+                if (key) {
+                    params[key] = decodeURIComponent(value || '');
+                }
+            });
+            return params;
+        }
+
+        // 5. 优先使用URL参数中的头像（如果有）
+        const urlParams = getUrlParams();
+        if (urlParams.photo_url) {
+            touximg.src = formatImageUrl(urlParams.photo_url);
+            console.log('使用URL参数中的头像:', urlParams.photo_url);
+        }
+
+        // 6. 请求用户信息（增加错误处理和token验证）
+        if (!token) {
+            console.error('未找到token，请先登录');
+            // 可跳转到登录页
+            // window.location.href = './login.html';
+        } else {
+            axios({
+                url: `${url1}/api/users/profile/`,
+                method: 'get',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                timeout: 10000 // 超时时间
+            }).then(result => {
+                console.log('用户信息请求成功:', result.data);
+                const userData = result.data;
+
+                // 赋值用户信息（修复：span标签用textContent，不是value）
+                touximg.src = formatImageUrl(userData.avatar);
+                console.log(touximg.src, 111);
+
+                zhanghao.textContent = userData.username || '未设置';
+                phone_number.textContent = userData.phone_number || '未绑定';
+                // 如果URL参数中没有头像，使用接口返回的头像
+                if (!urlParams.photo_url && userData.avatar) {
+                    touximg.src = formatImageUrl(userData.avatar);
+                }
+            }).catch(error => {
+                console.error('用户信息请求失败:', error);
+                // 处理token过期等错误
+                if (error.response && error.response.status === 401) {
+                    localStorage.removeItem('token');
+                    alert('登录已过期，请重新登录');
+                    // window.location.href = './login.html';
+                } else {
+                    alert('获取用户信息失败，请重试');
+                }
+            });
+        }
+    </script>
+</body>
+
+</html>

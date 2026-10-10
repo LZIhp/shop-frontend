@@ -1,0 +1,1276 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>注册店铺</title>
+    <!-- 外部资源引入 -->
+    <link rel="preload" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" as="style">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+    <link rel="preload" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css" as="style">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#3b82f6',
+                        success: '#10b981',
+                        danger: '#ef4444',
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        :root {
+            --primary-color: #2563eb;
+            --primary-light: #eff6ff;
+            --primary-dark: #1d4ed8;
+            --secondary-color: #4f46e5;
+            --success-color: #10b981;
+            --warning-color: #f59e0b;
+            --danger-color: #ef4444;
+            --gray-light: #f3f4f6;
+            --gray: #e5e7eb;
+            --gray-dark: #6b7280;
+            --text-color: #1f2937;
+            --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.05);
+            --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            --radius: 8px;
+            --transition: all 0.3s ease;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', 'Microsoft YaHei', sans-serif;
+        }
+
+        body {
+            background-color: #f8fafc;
+            color: var(--text-color);
+            line-height: 1.6;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            background: #fff;
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            padding: 30px;
+        }
+
+        .section-title {
+            font-size: 22px;
+            margin-bottom: 25px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid var(--gray);
+            font-weight: 600;
+            color: var(--text-color);
+            display: flex;
+            align-items: center;
+        }
+
+        .section-title i {
+            margin-right: 10px;
+            color: var(--primary-color);
+        }
+
+        .shop-registration-form {
+            max-width: 700px;
+            margin: 0 auto;
+        }
+
+        .form-row {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .form-col {
+            flex: 1;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+            color: var(--text-color);
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 10px 14px;
+            border: 1px solid var(--gray);
+            border-radius: var(--radius);
+            font-size: 15px;
+            transition: var(--transition);
+        }
+
+        .form-control:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+        }
+
+        .form-hint {
+            margin-top: 5px;
+            font-size: 13px;
+            color: var(--gray-dark);
+        }
+
+        .upload-area {
+            border: 2px dashed var(--gray);
+            border-radius: var(--radius);
+            padding: 30px;
+            text-align: center;
+            cursor: pointer;
+            transition: var(--transition);
+            margin-bottom: 20px;
+        }
+
+        .upload-area:hover {
+            border-color: var(--primary-color);
+            background-color: var(--primary-light);
+        }
+
+        .upload-icon {
+            font-size: 30px;
+            color: var(--primary-color);
+            margin-bottom: 15px;
+        }
+
+        .progress-container {
+            margin-top: 20px;
+            display: none;
+        }
+
+        .progress-bar {
+            height: 6px;
+            background-color: var(--gray);
+            border-radius: 3px;
+            overflow: hidden;
+        }
+
+        .progress {
+            height: 100%;
+            background-color: var(--primary-color);
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 10px 20px;
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: var(--radius);
+            cursor: pointer;
+            transition: var(--transition);
+            font-weight: 500;
+            font-size: 15px;
+        }
+
+        .btn i {
+            margin-right: 8px;
+        }
+
+        .btn:hover {
+            background-color: var(--primary-dark);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(37, 99, 235, 0.25);
+        }
+
+        .btn-outline {
+            background-color: transparent;
+            border: 1px solid var(--primary-color);
+            color: var(--primary-color);
+        }
+
+        .btn-outline:hover {
+            background-color: var(--primary-color);
+            color: white;
+        }
+
+        /* 图片预览样式 */
+        .image-previews {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .image-preview-item {
+            width: 100px;
+            height: 100px;
+            position: relative;
+            border-radius: 6px;
+            overflow: hidden;
+            border: 1px solid #eee;
+        }
+
+        .image-preview-item img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .image-remove {
+            position: absolute;
+            top: -5px;
+            right: -5px;
+            background: var(--danger-color);
+            color: white;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            cursor: pointer;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+        }
+
+        /* 相机模态框样式 */
+        #cameraModal .modal-body {
+            padding: 0;
+        }
+
+        #camera-preview {
+            width: 100%;
+            background: #000;
+        }
+
+        .camera-actions {
+            display: flex;
+            justify-content: space-around;
+            padding: 15px;
+            background: white;
+        }
+
+        .camera-btn {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: var(--primary-color);
+            color: white;
+            border: none;
+            font-size: 20px;
+            cursor: pointer;
+        }
+
+        .camera-btn.cancel {
+            background: var(--gray);
+            color: var(--text-color);
+        }
+
+        .camera-btn.switch {
+            background: transparent;
+            color: var(--primary-color);
+            border: 1px solid var(--primary-color);
+        }
+
+        /* 上传选择弹窗（仅手机端显示） */
+        .upload-option-modal {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: white;
+            border-radius: 16px 16px 0 0;
+            padding: 20px;
+            z-index: 10000;
+            transform: translateY(100%);
+            transition: transform 0.3s ease;
+            box-shadow: 0 -2px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .upload-option-modal.show {
+            transform: translateY(0);
+        }
+
+        .upload-option-title {
+            text-align: center;
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 25px;
+            color: var(--text-color);
+        }
+
+        .upload-option-btns {
+            display: flex;
+            justify-content: space-around;
+            margin-bottom: 30px;
+        }
+
+        .upload-option-btn {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+            width: 80px;
+            cursor: pointer;
+        }
+
+        .upload-option-icon {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background: #f3f4f6;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            color: var(--primary-color);
+            transition: all 0.2s ease;
+        }
+
+        .upload-option-btn:hover .upload-option-icon {
+            background: #eff6ff;
+            color: #2563eb;
+        }
+
+        .upload-option-text {
+            font-size: 14px;
+            color: #666;
+        }
+
+        .upload-option-cancel {
+            width: 100%;
+            padding: 12px;
+            background: #f9fafb;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            color: var(--text-color);
+            cursor: pointer;
+            transition: background 0.2s ease;
+        }
+
+        .upload-option-cancel:hover {
+            background: #f3f4f6;
+        }
+
+        /* 遮罩层 */
+        .modal-backdrop-custom {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 9999;
+            display: none;
+        }
+
+        .modal-backdrop-custom.show {
+            display: block;
+        }
+
+        /* 经纬度样式集成 */
+        .location-group {
+            display: flex;
+            gap: 20px;
+            align-items: flex-end;
+        }
+
+        .location-btn {
+            margin-bottom: 20px;
+        }
+
+        /* 响应式调整 */
+        @media (max-width: 768px) {
+            .container {
+                padding: 20px;
+            }
+
+            .form-row {
+                flex-direction: column;
+                gap: 0;
+            }
+
+            .section-title {
+                font-size: 20px;
+            }
+
+            .location-group {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .location-btn {
+                margin-bottom: 0;
+                width: 100%;
+            }
+
+            /* 手机端隐藏电脑端元素 */
+            .camera-actions .switch {
+                display: none !important;
+            }
+        }
+
+        /* 电脑端隐藏手机端元素 */
+        @media (min-width: 769px) {
+            .upload-option-modal {
+                display: none !important;
+            }
+        }
+
+        /* Toast提示样式 */
+        .toast {
+            min-width: 280px;
+            z-index: 99999;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <!-- 注册店铺部分 -->
+        <h2 class="section-title">
+            <i class="fas fa-store"></i>注册店铺
+        </h2>
+
+        <form class="shop-registration-form" id="shop-registration-form">
+            <div class="form-row">
+                <div class="form-col">
+                    <div class="form-group">
+                        <label class="form-label">店铺名称 <span style="color: var(--danger-color)">*</span></label>
+                        <input type="text" class="form-control" placeholder="请输入店铺名称" id="name" name="name" required>
+                        <div class="form-hint">请填写真实有效的店铺名称</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">店铺地址 <span style="color: var(--danger-color)">*</span></label>
+                <input type="text" class="form-control" placeholder="请输入详细店铺地址" id="address" name="address" required>
+            </div>
+
+            <!-- 经纬度获取区域 -->
+            <div class="location-group">
+                <div class="form-col">
+                    <div class="form-group">
+                        <label class="form-label">纬度</label>
+                        <input type="text" class="form-control" id="latitude" name="latitude" placeholder="点击获取位置自动填充"
+                            readonly>
+                    </div>
+                </div>
+                <div class="form-col">
+                    <div class="form-group">
+                        <label class="form-label">经度</label>
+                        <input type="text" class="form-control" id="longitude" name="longitude" placeholder="点击获取位置自动填充"
+                            readonly>
+                    </div>
+                </div>
+                <button type="button" class="btn btn-outline location-btn" id="get-location-btn">
+                    <i class="fa fa-map-marker"></i>获取位置
+                </button>
+            </div>
+
+            <div class="form-row">
+                <div class="form-col">
+                    <div class="form-group">
+                        <label class="form-label">联系电话 <span style="color: var(--danger-color)">*</span></label>
+                        <input type="tel" class="form-control" placeholder="请输入店铺联系电话" id="phone_number"
+                            name="phone_number" required>
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">店铺简介</label>
+                <textarea class="form-control" rows="4" placeholder="请简要介绍您的店铺（最多200字）" name="description"></textarea>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">营业执照上传 <span style="color: var(--danger-color)">*</span></label>
+                <div class="upload-area" id="license-upload">
+                    <div class="upload-icon">
+                        <i class="fas fa-cloud-upload-alt"></i>
+                    </div>
+                    <div>
+                        <p>点击上传或拍摄营业执照</p>
+                        <p class="form-hint">支持JPG、PNG格式，文件大小不超过1MB</p>
+                    </div>
+                    <input type="file" accept="image/*" style="display: none;">
+                </div>
+                <!-- 营业执照预览区域 -->
+                <div class="image-previews" id="license-previews"></div>
+                <div class="progress-container" id="license-progress">
+                    <div class="progress-bar">
+                        <div class="progress" id="license-upload-progress"></div>
+                    </div>
+                    <div class="form-hint" id="license-upload-status">上传中...</div>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">店铺照片</label>
+                <div class="upload-area" id="shop-photo-upload">
+                    <div class="upload-icon">
+                        <i class="fas fa-images"></i>
+                    </div>
+                    <div>
+                        <p>点击上传或拍摄店铺照片（最多5张）</p>
+                        <p class="form-hint">支持JPG、PNG格式，每张不超过1MB</p>
+                    </div>
+                    <input type="file" accept="image/*" multiple style="display: none;">
+                </div>
+                <!-- 店铺照片预览区域 -->
+                <div class="image-previews" id="shop-photo-previews"></div>
+                <div class="progress-container" id="shop-photo-progress">
+                    <div class="progress-bar">
+                        <div class="progress" id="shop-photo-upload-progress"></div>
+                    </div>
+                    <div class="form-hint" id="shop-photo-upload-status">上传中...</div>
+                </div>
+            </div>
+
+            <button type="button" class="btn" id="submit-shop-registration">
+                <i class="fas fa-check"></i>提交注册
+            </button>
+        </form>
+    </div>
+
+    <!-- 相机拍摄模态框 -->
+    <div class="modal fade" id="cameraModal" tabindex="-1">
+        <div class="modal-dialog modal-fullscreen-md-down">
+            <div class="modal-content">
+                <div class="modal-body p-0">
+                    <video id="camera-preview" autoplay playsinline muted></video>
+                    <canvas id="camera-canvas" style="display: none;"></canvas>
+                    <div class="camera-actions">
+                        <button class="camera-btn cancel" id="cancel-camera">
+                            <i class="fas fa-times"></i>
+                        </button>
+                        <button class="camera-btn" id="take-photo">
+                            <i class="fas fa-camera"></i>
+                        </button>
+                        <button class="camera-btn switch" id="switch-camera">
+                            <i class="fas fa-sync"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 上传选择弹窗（仅手机端显示） -->
+    <div class="modal-backdrop-custom" id="upload-option-backdrop"></div>
+    <div class="upload-option-modal" id="upload-option-modal">
+        <div class="upload-option-title">选择上传方式</div>
+        <div class="upload-option-btns">
+            <div class="upload-option-btn" id="select-album">
+                <div class="upload-option-icon">
+                    <i class="fas fa-folder-open"></i>
+                </div>
+                <div class="upload-option-text">从相册选择</div>
+            </div>
+            <div class="upload-option-btn" id="select-camera">
+                <div class="upload-option-icon">
+                    <i class="fas fa-camera"></i>
+                </div>
+                <div class="upload-option-text">拍摄照片</div>
+            </div>
+        </div>
+        <button class="upload-option-cancel" id="close-upload-option">取消</button>
+    </div>
+
+    <!-- 外部脚本引入 -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+    <script type="module">
+        // 全局配置
+        import url1 from '../peizhi/config.js';
+        const config = {
+            // 请替换为实际后端接口地址
+            maxImageSize: 1 * 1024 * 1024, // 1MB
+            maxShopPhotos: 5 // 店铺照片最大上传数量
+        };
+
+        // 全局变量
+        let cameraStream = null;
+        let isFrontCamera = false; // 默认后置摄像头
+        let currentUploadType = ''; // 记录当前上传类型（license/shop-photo）
+        const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent); // 设备判断
+
+        // 页面加载完成后初始化
+        document.addEventListener('DOMContentLoaded', function () {
+            initShopRegistrationForm();
+            initLocationService();
+            initCameraModal();
+            initUploadOptionModal();
+            bindSubmitEvent();
+        });
+
+        /**
+         * 初始化店铺注册表单
+         */
+        function initShopRegistrationForm() {
+            const licenseUpload = document.getElementById('license-upload');
+            const licenseFileInput = licenseUpload.querySelector('input[type="file"]');
+            const shopPhotoUpload = document.getElementById('shop-photo-upload');
+            const shopPhotoFileInput = shopPhotoUpload.querySelector('input[type="file"]');
+
+            // 根据设备类型绑定上传区域点击事件
+            if (isMobile) {
+                // 手机端：显示上传选择弹窗
+                licenseUpload.addEventListener('click', function (e) {
+                    if (e.target === this || e.target.parentNode === this) {
+                        currentUploadType = 'license';
+                        showUploadOptionModal();
+                    }
+                });
+
+                shopPhotoUpload.addEventListener('click', function (e) {
+                    if (e.target === this || e.target.parentNode === this) {
+                        currentUploadType = 'shop-photo';
+                        showUploadOptionModal();
+                    }
+                });
+            } else {
+                // 电脑端：直接打开文件选择器
+                licenseUpload.addEventListener('click', function (e) {
+                    if (e.target === this || e.target.parentNode === this) {
+                        licenseFileInput.click();
+                    }
+                });
+
+                shopPhotoUpload.addEventListener('click', function (e) {
+                    if (e.target === this || e.target.parentNode === this) {
+                        shopPhotoFileInput.click();
+                    }
+                });
+            }
+
+            // 营业执照文件选择事件
+            licenseFileInput.addEventListener('change', function (e) {
+                handleSelectedFiles(e.target.files, 'license-previews', true);
+            });
+
+            // 店铺照片文件选择事件
+            shopPhotoFileInput.addEventListener('change', function (e) {
+                handleSelectedFiles(e.target.files, 'shop-photo-previews', false);
+            });
+
+            // 支持拖放上传（仅电脑端）
+            setupDragAndDrop(licenseUpload, 'license-previews', true);
+            setupDragAndDrop(shopPhotoUpload, 'shop-photo-previews', false);
+        }
+
+        /**
+         * 初始化经纬度获取功能
+         */
+        function initLocationService() {
+            const getLocationBtn = document.getElementById('get-location-btn');
+            const latitudeInput = document.getElementById('latitude');
+            const longitudeInput = document.getElementById('longitude');
+
+            getLocationBtn.addEventListener('click', function () {
+                // 更改按钮状态
+                this.disabled = true;
+                this.innerHTML = '<i class="fa fa-spinner fa-spin mr-1"></i>获取中...';
+
+                // 检查浏览器支持
+                if (!navigator.geolocation) {
+                    showToast('您的浏览器不支持地理定位功能', 'error');
+                    resetButtonState();
+                    return;
+                }
+
+                // 调用Geolocation API
+                navigator.geolocation.getCurrentPosition(
+                    (position) => {
+                        // 成功获取位置
+                        const latitude = position.coords.latitude;
+                        const longitude = position.coords.longitude;
+
+                        // 显示经纬度（保留6位小数）
+                        latitudeInput.value = latitude.toFixed(6);
+                        longitudeInput.value = longitude.toFixed(6);
+
+                        showToast('位置获取成功');
+                        resetButtonState();
+                    },
+                    (error) => {
+                        // 处理错误
+                        let errorMessage = '';
+                        switch (error.code) {
+                            case error.PERMISSION_DENIED:
+                                errorMessage = "您拒绝了位置请求，请允许浏览器获取位置信息";
+                                break;
+                            case error.POSITION_UNAVAILABLE:
+                                errorMessage = "位置信息不可用";
+                                break;
+                            case error.TIMEOUT:
+                                errorMessage = "获取位置超时";
+                                break;
+                            case error.UNKNOWN_ERROR:
+                                errorMessage = "发生未知错误";
+                                break;
+                        }
+
+                        showToast(errorMessage, 'error');
+                        resetButtonState();
+                    },
+                    {
+                        enableHighAccuracy: true,
+                        timeout: 15000,
+                        maximumAge: 0
+                    }
+                );
+            });
+
+            // 重置按钮状态
+            function resetButtonState() {
+                getLocationBtn.disabled = false;
+                getLocationBtn.innerHTML = '<i class="fa fa-map-marker"></i>获取位置';
+            }
+        }
+
+        /**
+         * 初始化相机模态框
+         */
+        function initCameraModal() {
+            const cameraModal = new bootstrap.Modal(document.getElementById('cameraModal'));
+            const video = document.getElementById('camera-preview');
+            const canvas = document.getElementById('camera-canvas');
+            const takePhotoBtn = document.getElementById('take-photo');
+            const cancelBtn = document.getElementById('cancel-camera');
+            const switchBtn = document.getElementById('switch-camera');
+
+            // 模态框显示时启动摄像头
+            document.getElementById('cameraModal').addEventListener('shown.bs.modal', async () => {
+                try {
+                    // 停止已有流
+                    if (cameraStream) {
+                        cameraStream.getTracks().forEach(track => track.stop());
+                    }
+
+                    // 获取摄像头流
+                    const constraints = {
+                        video: {
+                            facingMode: isFrontCamera ? 'user' : 'environment',
+                            width: { ideal: 1280 },
+                            height: { ideal: 960 }
+                        }
+                    };
+
+                    cameraStream = await navigator.mediaDevices.getUserMedia(constraints);
+                    video.srcObject = cameraStream;
+
+                    // 设置画布尺寸
+                    video.onloadedmetadata = () => {
+                        canvas.width = video.videoWidth;
+                        canvas.height = video.videoHeight;
+                    };
+                } catch (err) {
+                    console.error('相机启动失败:', err);
+                    showToast('无法访问摄像头，请检查权限', 'error');
+                    cameraModal.hide();
+                }
+            });
+
+            // 模态框隐藏时停止摄像头
+            document.getElementById('cameraModal').addEventListener('hidden.bs.modal', () => {
+                if (cameraStream) {
+                    cameraStream.getTracks().forEach(track => track.stop());
+                    cameraStream = null;
+                }
+            });
+
+            // 拍照按钮
+            takePhotoBtn.addEventListener('click', () => {
+                const ctx = canvas.getContext('2d');
+
+                // 前置摄像头镜像翻转
+                if (isFrontCamera) {
+                    ctx.save();
+                    ctx.translate(canvas.width, 0);
+                    ctx.scale(-1, 1);
+                    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+                    ctx.restore();
+                } else {
+                    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+                }
+
+                // 转换为Blob并压缩
+                canvas.toBlob(async (blob) => {
+                    const compressedBlob = await compressImage(blob);
+
+                    // 根据上传类型添加预览
+                    if (currentUploadType === 'license') {
+                        document.getElementById('license-previews').innerHTML = '';
+                        addImagePreview(compressedBlob, 'license-previews');
+                    } else if (currentUploadType === 'shop-photo') {
+                        const previewCount = document.querySelectorAll('#shop-photo-previews .image-preview-item').length;
+                        if (previewCount < config.maxShopPhotos) {
+                            addImagePreview(compressedBlob, 'shop-photo-previews');
+                        } else {
+                            showToast(`最多只能上传${config.maxShopPhotos}张照片`, 'error');
+                        }
+                    }
+
+                    cameraModal.hide();
+                }, 'image/jpeg', 0.9);
+            });
+
+            // 取消按钮
+            cancelBtn.addEventListener('click', () => {
+                cameraModal.hide();
+            });
+
+            // 切换摄像头
+            switchBtn.addEventListener('click', () => {
+                isFrontCamera = !isFrontCamera;
+                if (cameraStream) {
+                    cameraStream.getTracks().forEach(track => track.stop());
+                    initCameraStream(video);
+                }
+            });
+        }
+
+        /**
+         * 初始化摄像头流（用于切换摄像头）
+         */
+        async function initCameraStream(video) {
+            try {
+                const constraints = {
+                    video: {
+                        facingMode: isFrontCamera ? 'user' : 'environment',
+                        width: { ideal: 1280 },
+                        height: { ideal: 960 }
+                    }
+                };
+
+                cameraStream = await navigator.mediaDevices.getUserMedia(constraints);
+                video.srcObject = cameraStream;
+            } catch (err) {
+                console.error('切换摄像头失败:', err);
+                showToast('切换摄像头失败', 'error');
+            }
+        }
+
+        /**
+         * 初始化上传选择弹窗（仅手机端）
+         */
+        function initUploadOptionModal() {
+            const uploadOptionModal = document.getElementById('upload-option-modal');
+            const uploadOptionBackdrop = document.getElementById('upload-option-backdrop');
+            const selectAlbumBtn = document.getElementById('select-album');
+            const selectCameraBtn = document.getElementById('select-camera');
+            const closeBtn = document.getElementById('close-upload-option');
+            const licenseFileInput = document.getElementById('license-upload').querySelector('input[type="file"]');
+            const shopPhotoFileInput = document.getElementById('shop-photo-upload').querySelector('input[type="file"]');
+
+            // 显示弹窗
+            window.showUploadOptionModal = function () {
+                uploadOptionModal.classList.add('show');
+                uploadOptionBackdrop.classList.add('show');
+            };
+
+            // 隐藏弹窗
+            function hideUploadOptionModal() {
+                uploadOptionModal.classList.remove('show');
+                uploadOptionBackdrop.classList.remove('show');
+            }
+
+            // 从相册选择
+            selectAlbumBtn.addEventListener('click', () => {
+                hideUploadOptionModal();
+                if (currentUploadType === 'license') {
+                    licenseFileInput.click();
+                } else if (currentUploadType === 'shop-photo') {
+                    shopPhotoFileInput.click();
+                }
+            });
+
+            // 拍摄照片
+            selectCameraBtn.addEventListener('click', () => {
+                hideUploadOptionModal();
+                const cameraModal = new bootstrap.Modal(document.getElementById('cameraModal'));
+                cameraModal.show();
+            });
+
+            // 关闭弹窗
+            closeBtn.addEventListener('click', hideUploadOptionModal);
+            uploadOptionBackdrop.addEventListener('click', hideUploadOptionModal);
+        }
+
+        /**
+         * 处理选择的文件
+         * @param {FileList} files - 选择的文件列表
+         * @param {string} previewContainerId - 预览容器ID
+         * @param {boolean} single - 是否单文件上传
+         */
+        async function handleSelectedFiles(files, previewContainerId, single) {
+            if (!files || files.length === 0) return;
+
+            const previewContainer = document.getElementById(previewContainerId);
+            const currentCount = previewContainer.querySelectorAll('.image-preview-item').length;
+            const maxCount = single ? 1 : config.maxShopPhotos;
+
+            // 单文件上传时清空现有预览
+            if (single) {
+                previewContainer.innerHTML = '';
+            }
+
+            // 检查文件数量限制
+            if (currentCount + files.length > maxCount) {
+                showToast(`最多只能上传${maxCount}张图片`, 'error');
+                return;
+            }
+
+            // 处理每个文件
+            for (let i = 0; i < files.length; i++) {
+                const file = files[i];
+
+                // 检查文件类型
+                if (!file.type.startsWith('image/')) {
+                    showToast('请上传图片文件', 'error');
+                    continue;
+                }
+
+                // 压缩图片
+                const compressedBlob = await compressImage(file);
+
+                // 添加预览
+                addImagePreview(compressedBlob, previewContainerId);
+            }
+        }
+
+        /**
+         * 添加图片预览
+         * @param {Blob} blob - 图片Blob对象
+         * @param {string} previewContainerId - 预览容器ID
+         */
+        function addImagePreview(blob, previewContainerId) {
+            const previewContainer = document.getElementById(previewContainerId);
+            const previewItem = document.createElement('div');
+            previewItem.className = 'image-preview-item';
+
+            // 创建图片URL
+            const imageUrl = URL.createObjectURL(blob);
+
+            previewItem.innerHTML = `
+                <img src="${imageUrl}" alt="预览图">
+                <div class="image-remove" data-url="${imageUrl}">
+                    <i class="fa fa-times"></i>
+                </div>
+            `;
+
+            previewContainer.appendChild(previewItem);
+
+            // 绑定删除事件
+            previewItem.querySelector('.image-remove').addEventListener('click', function (e) {
+                e.stopPropagation();
+                // 释放URL对象
+                URL.revokeObjectURL(this.dataset.url);
+                previewItem.remove();
+            });
+
+            // 存储Blob对象用于后续上传
+            previewItem.blob = blob;
+        }
+
+        /**
+         * 设置拖放上传功能
+         * @param {HTMLElement} element - 拖放目标元素
+         * @param {string} previewContainerId - 预览容器ID
+         * @param {boolean} single - 是否单文件上传
+         */
+        function setupDragAndDrop(element, previewContainerId, single) {
+            element.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                element.style.borderColor = 'var(--primary-color)';
+                element.style.backgroundColor = 'var(--primary-light)';
+            });
+
+            element.addEventListener('dragleave', () => {
+                element.style.borderColor = 'var(--gray)';
+                element.style.backgroundColor = 'transparent';
+            });
+
+            element.addEventListener('drop', (e) => {
+                e.preventDefault();
+                element.style.borderColor = 'var(--gray)';
+                element.style.backgroundColor = 'transparent';
+                handleSelectedFiles(e.dataTransfer.files, previewContainerId, single);
+            });
+        }
+
+        /**
+         * 压缩图片
+         * @param {Blob} blob - 原始图片Blob
+         * @returns {Promise<Blob>} 压缩后的Blob
+         */
+        function compressImage(blob) {
+            return new Promise((resolve) => {
+                const img = new Image();
+                const url = URL.createObjectURL(blob);
+
+                img.onload = function () {
+                    URL.revokeObjectURL(url);
+
+                    // 创建画布
+                    const canvas = document.createElement('canvas');
+                    const ctx = canvas.getContext('2d');
+
+                    // 按比例缩小图片
+                    let width = img.width;
+                    let height = img.height;
+                    const maxDimension = 1280; // 最大尺寸限制
+
+                    if (width > height && width > maxDimension) {
+                        height = (height * maxDimension) / width;
+                        width = maxDimension;
+                    } else if (height > maxDimension) {
+                        width = (width * maxDimension) / height;
+                        height = maxDimension;
+                    }
+
+                    canvas.width = width;
+                    canvas.height = height;
+
+                    // 绘制图片
+                    ctx.drawImage(img, 0, 0, width, height);
+
+                    // 逐步调整质量以满足大小要求
+                    let quality = 0.9;
+                    const step = 0.1;
+
+                    function compress() {
+                        canvas.toBlob((compressedBlob) => {
+                            if (compressedBlob.size <= config.maxImageSize || quality <= 0.1) {
+                                resolve(compressedBlob);
+                            } else {
+                                quality -= step;
+                                compress();
+                            }
+                        }, 'image/jpeg', quality);
+                    }
+
+                    compress();
+                };
+
+                img.src = url;
+            });
+        }
+
+        /**
+         * 绑定表单提交事件
+         */
+        function bindSubmitEvent() {
+            const submitButton = document.getElementById('submit-shop-registration');
+            const form = document.getElementById('shop-registration-form');
+
+            submitButton.addEventListener('click', function () {
+                // 表单验证
+                if (!validateForm()) {
+                    return;
+                }
+
+                // 创建FormData对象
+                const formData = new FormData(form);
+
+                // 处理经纬度（转换为数字）
+                const latitude = parseFloat(formData.get('latitude') || 0);
+                const longitude = parseFloat(formData.get('longitude') || 0);
+                formData.delete('latitude');
+                formData.delete('longitude');
+                formData.append('latitude', latitude);
+                formData.append('longitude', longitude);
+
+                // 添加营业执照
+                const licenseImages = getPreviewImages('license-previews');
+                licenseImages.forEach(img => {
+                    formData.append('license', img.blob, 'license.jpg');
+                });
+
+                // 添加店铺照片
+                const shopImages = getPreviewImages('shop-photo-previews');
+                shopImages.forEach((img, index) => {
+                    formData.append(`shop_photos[${index}]`, img.blob, `shop_photo_${index}.jpg`);
+                });
+
+                // 显示上传进度
+                showProgress('license-progress', 0);
+                showProgress('shop-photo-progress', 0);
+
+                // 发送请求
+                axios({
+                    url: `${url1}/api/shops/`,
+                    method: 'POST',
+                    data: formData,
+                    headers: {
+                        'Content-Type': 'multipart/form-data',
+                        Authorization: `Bearer ${localStorage.getItem("sjlocaltoken")}` // 从本地存储获取token
+                    },
+                    onUploadProgress: function (progressEvent) {
+                        const percent = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+                        showProgress('license-progress', percent);
+                        showProgress('shop-photo-progress', percent);
+                    }
+                }).then(result => {
+                    console.log('店铺注册成功:', result);
+                    showToast('店铺注册申请已提交成功');
+
+                    // 重置表单和预览
+                    form.reset();
+                    document.getElementById('license-previews').innerHTML = '';
+                    document.getElementById('shop-photo-previews').innerHTML = '';
+                    hideProgress('license-progress');
+                    hideProgress('shop-photo-progress');
+                }).catch(error => {
+                    console.error('店铺注册失败:', error.response || error);
+                    showToast('提交失败，请稍后重试', 'error');
+                    hideProgress('license-progress');
+                    hideProgress('shop-photo-progress');
+                });
+            });
+        }
+
+        /**
+         * 表单验证
+         * @returns {boolean} 验证是否通过
+         */
+        function validateForm() {
+            const name = document.getElementById('name').value.trim();
+            const address = document.getElementById('address').value.trim();
+            const phone = document.getElementById('phone_number').value.trim();
+            const licenseCount = document.querySelectorAll('#license-previews .image-preview-item').length;
+
+            if (!name) {
+                showToast('请输入店铺名称', 'error');
+                return false;
+            }
+
+            if (!address) {
+                showToast('请输入店铺地址', 'error');
+                return false;
+            }
+
+            if (!phone || !/^1[3-9]\d{9}$/.test(phone)) {
+                showToast('请输入有效的联系电话', 'error');
+                return false;
+            }
+
+            if (licenseCount === 0) {
+                showToast('请上传营业执照', 'error');
+                return false;
+            }
+
+            return true;
+        }
+
+        /**
+         * 获取预览区的图片
+         * @param {string} previewContainerId - 预览容器ID
+         * @returns {Array} 图片对象数组
+         */
+        function getPreviewImages(previewContainerId) {
+            const previewContainer = document.getElementById(previewContainerId);
+            const items = previewContainer.querySelectorAll('.image-preview-item');
+            const images = [];
+
+            items.forEach(item => {
+                if (item.blob) {
+                    images.push({ blob: item.blob });
+                }
+            });
+
+            return images;
+        }
+
+        /**
+         * 显示上传进度
+         * @param {string} progressContainerId - 进度容器ID
+         * @param {number} percent - 进度百分比
+         */
+        function showProgress(progressContainerId, percent) {
+            const container = document.getElementById(progressContainerId);
+            const progressBar = container.querySelector('.progress');
+            const statusText = container.querySelector('div.form-hint');
+
+            container.style.display = 'block';
+            progressBar.style.width = `${percent}%`;
+
+            if (percent === 100) {
+                statusText.textContent = '上传完成';
+            } else {
+                statusText.textContent = `上传中...${percent}%`;
+            }
+        }
+
+        /**
+         * 隐藏上传进度
+         * @param {string} progressContainerId - 进度容器ID
+         */
+        function hideProgress(progressContainerId) {
+            const container = document.getElementById(progressContainerId);
+            container.style.display = 'none';
+            container.querySelector('.progress').style.width = '0%';
+        }
+
+        /**
+         * 显示提示消息
+         * @param {string} message - 提示内容
+         * @param {string} type - 提示类型（success/error）
+         */
+        function showToast(message, type = 'success') {
+            // 创建toast元素
+            const toast = document.createElement('div');
+            toast.className = `toast position-fixed bottom-5 end-5 text-white ${type === 'success' ? 'bg-success' : 'bg-danger'}`;
+            toast.role = 'alert';
+            toast.ariaLive = 'assertive';
+            toast.ariaAtomic = 'true';
+            toast.innerHTML = `
+                <div class="d-flex">
+                    <div class="toast-body d-flex align-items-center">
+                        <i class="fas ${type === 'success' ? 'fa-check-circle' : 'fa-exclamation-circle'} me-2"></i>
+                        ${message}
+                    </div>
+                    <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+                </div>
+            `;
+
+            // 添加到页面
+            document.body.appendChild(toast);
+
+            // 显示toast
+            const bsToast = new bootstrap.Toast(toast);
+            bsToast.show();
+
+            // 3秒后自动移除
+            setTimeout(() => {
+                if (document.body.contains(toast)) {
+                    document.body.removeChild(toast);
+                }
+            }, 3000);
+        }
+    </script>
+</body>
+
+</html>

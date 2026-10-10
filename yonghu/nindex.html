@@ -1,0 +1,590 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>华耀城用户首页</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <style>
+        /* 基础重置 */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html {
+            scroll-behavior: smooth;
+        }
+
+        body {
+            font-family: 'PingFang SC', 'Microsoft YaHei', sans-serif;
+            line-height: 1.6;
+            color: #333;
+            padding-top: 80px;
+            background: #f5f5f5;
+        }
+
+        /* 固定导航栏 */
+        .pdd-navbar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            background: white;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+            z-index: 1000;
+            transition: all 0.3s ease;
+        }
+
+        .pdd-navbar.scrolled {
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            height: 80px;
+        }
+
+        /* Logo样式 */
+        .brand-logo {
+            display: flex;
+            align-items: center;
+            text-decoration: none;
+        }
+
+        .logo-text {
+            font-size: 24px;
+            font-weight: bold;
+            color: #FF5000;
+        }
+
+        /* 桌面导航 */
+        .desktop-nav ul {
+            display: flex;
+            list-style: none;
+        }
+
+        .desktop-nav li {
+            position: relative;
+            margin-left: 25px;
+        }
+
+        .desktop-nav a {
+            color: #333;
+            text-decoration: none;
+            font-size: 16px;
+            font-weight: 500;
+            padding: 10px 0;
+            position: relative;
+            transition: color 0.3s;
+        }
+
+        .desktop-nav a:hover {
+            color: #FF5000;
+        }
+
+        .desktop-nav a::after {
+            content: '';
+            position: absolute;
+            bottom: 5px;
+            left: 0;
+            width: 0;
+            height: 2px;
+            background: #FF5000;
+            transition: width 0.3s;
+        }
+
+        .desktop-nav a:hover::after {
+            width: 100%;
+        }
+
+        /* 下拉菜单 */
+        .more-menu .dropdown {
+            position: absolute;
+            top: 100%;
+            right: 0;
+            background: white;
+            min-width: 180px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+            border-radius: 5px;
+            padding: 10px 0;
+            opacity: 0;
+            visibility: hidden;
+            transform: translateY(10px);
+            transition: all 0.3s;
+            z-index: 100;
+        }
+
+        .more-menu:hover .dropdown {
+            opacity: 1;
+            visibility: visible;
+            transform: translateY(0);
+        }
+
+        .dropdown a {
+            display: block;
+            padding: 10px 20px;
+            color: #555;
+            transition: all 0.2s;
+        }
+
+        .dropdown a:hover {
+            color: #FF5000;
+            background: #fff5f2;
+        }
+
+        /* 移动菜单按钮 */
+        .mobile-menu-toggle {
+            display: none;
+            background: none;
+            border: none;
+            cursor: pointer;
+            padding: 10px;
+            z-index: 1001;
+        }
+
+        .hamburger {
+            display: block;
+            width: 25px;
+            height: 2px;
+            background: #333;
+            position: relative;
+            transition: all 0.3s;
+        }
+
+        .hamburger::before,
+        .hamburger::after {
+            content: '';
+            position: absolute;
+            width: 100%;
+            height: 2px;
+            background: #333;
+            left: 0;
+            transition: all 0.3s;
+        }
+
+        .hamburger::before {
+            top: -8px;
+        }
+
+        .hamburger::after {
+            bottom: -8px;
+        }
+
+        .hamburger.active {
+            background: transparent;
+        }
+
+        .hamburger.active::before {
+            top: 0;
+            transform: rotate(45deg);
+        }
+
+        .hamburger.active::after {
+            bottom: 0;
+            transform: rotate(-45deg);
+        }
+
+        /* 移动导航 */
+        .mobile-nav {
+            position: fixed;
+            top: 80px;
+            left: 0;
+            width: 100%;
+            height: calc(100vh - 80px);
+            background: white;
+            padding: 20px;
+            transform: translateX(100%);
+            transition: transform 0.3s ease;
+            overflow-y: auto;
+            z-index: 999;
+        }
+
+        .mobile-nav.active {
+            transform: translateX(0);
+        }
+
+        .mobile-nav ul {
+            list-style: none;
+        }
+
+        .mobile-nav li {
+            margin-bottom: 15px;
+        }
+
+        .mobile-nav a {
+            display: block;
+            color: #333;
+            text-decoration: none;
+            font-size: 18px;
+            padding: 12px 0;
+            border-bottom: 1px solid #eee;
+        }
+
+        /* 主内容区域 - 修改为iframe容器 */
+        .main-content {
+            padding: 20px;
+            max-width: 2000px;
+            margin: 0 auto;
+        }
+
+        .iframe-container {
+            position: relative;
+            width: 100%;
+            height: calc(100vh - 100px);
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+            overflow: hidden;
+        }
+
+        .iframe-container iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+        }
+
+        /* 响应式设计 */
+        @media (max-width: 992px) {
+            .desktop-nav {
+                display: none;
+            }
+
+            .mobile-menu-toggle {
+                display: block;
+            }
+
+            .more-menu .dropdown {
+                display: none;
+            }
+        }
+
+        @media (max-width: 576px) {
+            .container {
+                height: 70px;
+            }
+
+            .logo-text {
+                font-size: 20px;
+            }
+
+            .mobile-nav {
+                top: 70px;
+                height: calc(100vh - 70px);
+            }
+
+            body {
+                padding-top: 70px;
+            }
+
+            .iframe-container {
+                height: calc(100vh - 90px);
+            }
+
+        }
+
+        /* 禁用滚动 */
+        .no-scroll {
+            overflow: hidden;
+        }
+
+        /* touxiang */
+        /* 添加头像样式 - 响应式设计 */
+        .avatar-container {
+            display: inline-block;
+            margin-right: 15px;
+            vertical-align: middle;
+        }
+
+        .avatar {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background-color: #f0f0f0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            border: 2px solid #fff;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            transition: all 0.3s ease;
+        }
+
+        .avatar img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .avatar-placeholder {
+            color: #999;
+            font-size: 18px;
+        }
+
+        /* 响应式设计 */
+        @media (max-width: 1200px) {
+            .avatar {
+                width: 32px;
+                height: 32px;
+            }
+
+            .avatar-placeholder {
+                font-size: 16px;
+            }
+        }
+
+        @media (max-width: 992px) {
+            .desktop-nav .avatar-container {
+                display: none;
+                /* 在中等屏幕下隐藏桌面导航的头像 */
+            }
+
+            /* 在移动导航中添加头像 */
+            .mobile-nav ul::before {
+                content: "";
+                display: block;
+                padding: 15px;
+                text-align: center;
+            }
+
+            .mobile-nav ul::before {
+                content: "";
+                display: flex;
+                justify-content: center;
+                padding: 15px 0;
+            }
+
+            .mobile-nav-avatar {
+                display: flex;
+                justify-content: center;
+                padding: 10px 0 15px;
+            }
+
+            .mobile-nav-avatar .avatar {
+                width: 48px;
+                height: 48px;
+            }
+
+            .mobile-nav-avatar .avatar-placeholder {
+                font-size: 24px;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .mobile-nav-avatar .avatar {
+                width: 42px;
+                height: 42px;
+            }
+
+            .mobile-nav-avatar .avatar-placeholder {
+                font-size: 20px;
+            }
+        }
+
+        @media (max-width: 576px) {
+            .mobile-nav-avatar .avatar {
+                width: 50px;
+                height: 50px;
+            }
+
+            .mobile-nav-avatar .avatar-placeholder {
+                font-size: 18px;
+            }
+        }
+
+        /* 移除默认隐藏，让JS控制显示/隐藏 */
+        .tuichu {
+            display: none;
+        }
+    </style>
+</head>
+
+<body>
+    <!-- 固定导航栏 -->
+    <header class="pdd-navbar">
+        <div class="container">
+            <!-- Logo -->
+            <a href="#" class="brand-logo">
+                <span class="logo-text">华耀城</span>
+            </a>
+            <!-- 桌面导航 -->
+            <nav class="desktop-nav">
+                <ul>
+                    <!-- 添加头像容器 -->
+                    <li class="avatar-container">
+                        <div class="avatar">
+                            <img src="image/微信图片_20250302194226.jpg" alt="用户头像" id="touximg">
+                        </div>
+                    </li>
+                    <li><a href="#" target="_top" data-iframe="index.html">首页</a></li>
+                    <li><a href="#" data-iframe="search.html">搜索</a></li>
+                    <li class="login-btn"><a href="yh.html">登录</a></li>
+                    <li class="shouc"><a href="#" data-iframe="shouc.html">收藏中心</a></li>
+                    <li class="tuichu">
+                        <a href="javascript:;" class="logout-btn">退出登录</a>
+                    </li>
+                    <li class="more-menu">
+                        <a href="#">更多 <i class="fas fa-chevron-down"></i></a>
+                        <div class="dropdown">
+
+                            <a href="#" data-iframe="report.html">举报商家</a>
+                            <a href="#" data-iframe="gerenxinxi.html">个人中心</a>
+                        </div>
+                    </li>
+                </ul>
+            </nav>
+            <!-- 移动端菜单按钮 -->
+            <button class="mobile-menu-toggle" aria-label="菜单">
+                <span class="hamburger"></span>
+            </button>
+        </div>
+        <!-- 移动端菜单 -->
+        <nav class="mobile-nav">
+            <div class="mobile-nav-avatar">
+                <div class="avatar">
+                    <img src="image/微信图片_20250302194226.jpg" alt="用户头像" id="touximg2">
+                </div>
+            </div>
+            <ul>
+                <li><a href="nindex.html" target="_top" data-iframe="index.html">首页</a></li>
+                <li><a href="#" data-iframe="search.html">搜索</a></li>
+                <li class="shouc"><a href="#" data-iframe="shouc.html">收藏中心</a></li>
+                <li class="login-btn"><a href="yh.html">登录</a></li>
+                <li class="tuichu"><a href="javascript:;" class="logout-btn">退出登录</a></li>
+                <li><a href="#" data-iframe="gerenxinxi.html">个人中心</a></li>
+            </ul>
+        </nav>
+    </header>
+    <!-- 主内容区域 - 修改为iframe显示 -->
+    <div class="main-content">
+        <div class="iframe-container">
+            <iframe id="main-iframe" src="index.html"></iframe>
+        </div>
+    </div>
+    <script type="module">
+        import url1 from '../peizhi/config.js';
+
+        document.addEventListener('DOMContentLoaded', function () {
+            // 2. 在 DOM 完全加载后，再获取元素和执行逻辑
+            const loginBtns = document.querySelectorAll('.login-btn');
+            const logoutBtns = document.querySelectorAll('.tuichu');
+            const logoutLinks = document.querySelectorAll('.logout-btn');
+            const shouc = document.querySelectorAll('.shouc');
+
+            const token = localStorage.getItem("token"); // 获取token
+
+            // 3. 定义一个健壮的图片URL格式化函数
+            function formatImageUrl(oldImageUrl) {
+                // 处理空链接或无效链接（返回默认占位图，避免显示破碎图片）
+                const urlObj = new URL(oldImageUrl);
+                return `${url1}${urlObj.pathname}`;
+            }
+            const updateLoginStatus = () => {
+                const hasToken = !!localStorage.getItem("token");
+                if (hasToken) {
+                    loginBtns.forEach(btn => btn.style.display = 'none');
+                    logoutBtns.forEach(btn => btn.style.display = 'block');
+                    shouc.forEach(btn => btn.style.display = 'block'); // 登录后显示收藏
+                } else {
+                    loginBtns.forEach(btn => btn.style.display = 'block');
+                    logoutBtns.forEach(btn => btn.style.display = 'none');
+                    shouc.forEach(btn => btn.style.display = 'none'); // 未登录隐藏收藏
+                }
+            };
+
+            // 5. 如果已登录，则请求用户信息并更新头像
+            const fetchAndUpdateUserInfo = () => {
+                const touximg = document.getElementById('touximg'); // 获取头像img元素
+                const touximg2 = document.getElementById('touximg2'); // 获取头像img元素
+                axios({
+                    url: `${url1}/api/users/profile/`,
+                    method: 'get',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    timeout: 10000
+                }).then(result => {
+                    console.log('用户信息请求成功:', result.data);
+                    const userData = result.data;
+
+                    // 更新父页面导航栏中的头像
+                    if (userData.avatar) {
+                        touximg.src = formatImageUrl(userData.avatar);
+                        touximg2.src = formatImageUrl(userData.avatar);
+                        console.log('aa', touximg.src, 'aaa');
+
+                    }
+
+                }).catch(error => {
+                    console.error('用户信息请求失败:', error)
+                });
+            };
+
+            // --- 事件监听和初始化 ---
+
+            // 初始化登录状态
+            updateLoginStatus();
+
+            // 如果已登录，立即请求用户信息
+            fetchAndUpdateUserInfo();
+
+            // 退出登录事件
+            logoutLinks.forEach(link => {
+                link.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    localStorage.removeItem("token");
+                    updateLoginStatus();
+                    // 刷新页面以确保所有状态都被重置
+                    setTimeout(() => {
+                        window.location.reload();
+                    }, 300);
+                });
+            });
+
+            // 移动端菜单逻辑
+            const menuToggle = document.querySelector('.mobile-menu-toggle');
+            const mobileNav = document.querySelector('.mobile-nav');
+            const hamburger = document.querySelector('.hamburger');
+
+            menuToggle.addEventListener('click', () => {
+                const isExpanded = menuToggle.getAttribute('aria-expanded') === 'true';
+                menuToggle.setAttribute('aria-expanded', !isExpanded);
+                mobileNav.classList.toggle('active');
+                hamburger.classList.toggle('active');
+                document.body.classList.toggle('no-scroll');
+            });
+
+            // 滚动效果
+            window.addEventListener('scroll', () => {
+                const header = document.querySelector('.pdd-navbar');
+                header.classList.toggle('scrolled', window.scrollY > 10);
+            });
+
+            // iframe 导航逻辑
+            document.querySelectorAll('[data-iframe]').forEach(link => {
+                link.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    const iframeSrc = link.getAttribute('data-iframe');
+                    document.getElementById('main-iframe').src = iframeSrc;
+                    if (mobileNav.classList.contains('active')) {
+                        mobileNav.classList.remove('active');
+                        hamburger.classList.remove('active');
+                        document.body.classList.remove('no-scroll');
+                        menuToggle.setAttribute('aria-expanded', 'false');
+                    }
+                });
+            });
+        });
+    </script>
+</body>
+
+</html>

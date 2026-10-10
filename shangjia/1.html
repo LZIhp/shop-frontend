@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>商品详情卡片 - 搜索版</title>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <link href="https://cdn.bootcdn.net/ajax/libs/twitter-bootstrap/4.6.0/css/bootstrap.css" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --medical-blue: #1a5c9e;
+            --health-green: #28a745;
+            --favorite-red: #dc3545;
+        }
+
+        body {
+            background: #f8f9fa;
+            min-height: 100vh;
+            font-family: '微软雅黑', sans-serif;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 30px auto;
+            padding: 30px;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.1);
+        }
+
+        /* 搜索框样式 */
+        .search-box {
+            margin: 25px 0;
+        }
+
+        #searchInput {
+            width: 100%;
+            padding: 12px 20px;
+            border: 2px solid var(--medical-blue);
+            border-radius: 30px;
+            font-size: 16px;
+            outline: none;
+        }
+
+        /* 分类标签样式 */
+        .tabs {
+            margin: 20px 0;
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .tab {
+            padding: 10px 25px;
+            background: #e3f2fd;
+            border: none;
+            border-radius: 20px;
+            cursor: pointer;
+            transition: 0.3s;
+            font-size: 14px;
+        }
+
+        .tab.active {
+            background: var(--medical-blue);
+            color: white;
+        }
+
+        /* 卡片容器：flex横向布局 + 响应式适配 */
+        #product-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+            padding: 20px 0;
+            justify-content: flex-start;
+        }
+
+        /* 卡片基础样式 */
+        .product-card {
+            flex: 1;
+            min-width: calc(50% - 10px);
+            max-width: calc(50% - 10px);
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 16px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            font-family: '微软雅黑', sans-serif;
+            box-sizing: border-box;
+            position: relative;
+            transition: box-shadow 0.3s;
+        }
+
+        .product-card:hover {
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.15);
+        }
+
+        /* 图片样式 */
+        .product-img {
+            width: 100%;
+            height: 200px;
+            object-fit: cover;
+            border-radius: 4px;
+            margin-bottom: 12px;
+        }
+
+        /* 文本样式 */
+        .product-title {
+            font-size: 18px;
+            font-weight: 600;
+            margin: 8px 0;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            color: #333;
+        }
+
+        .product-info {
+            font-size: 14px;
+            color: #666;
+            margin: 4px 0;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+
+        .product-price {
+            font-size: 16px;
+            color: var(--favorite-red);
+            font-weight: 600;
+            margin: 12px 0;
+        }
+
+        /* 加载中/无数据样式 */
+        .loading,
+        .no-data {
+            width: 100%;
+            text-align: center;
+            padding: 50px;
+            color: var(--medical-blue);
+            font-size: 18px;
+        }
+
+        .no-data {
+            color: #666;
+        }
+
+        /* 响应式适配 */
+        @media (min-width: 1200px) {
+            .product-card {
+                min-width: calc(16.666% - 17px);
+                max-width: calc(16.666% - 17px);
+            }
+        }
+
+        @media (min-width: 768px) and (max-width: 1199px) {
+            .product-card {
+                min-width: calc(25% - 15px);
+                max-width: calc(25% - 15px);
+            }
+        }
+
+        @media (max-width: 767px) {
+            .product-card {
+                min-width: calc(50% - 10px);
+                max-width: calc(50% - 10px);
+            }
+        }
+
+        @media (max-width: 479px) {
+            .product-card {
+                min-width: 100%;
+                max-width: 100%;
+            }
+
+            .tab {
+                padding: 8px 15px;
+                font-size: 13px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <!-- 搜索框 -->
+        <div class="search-box">
+            <input type="text" id="searchInput" placeholder="输入商品名称、描述或分类...">
+        </div>
+
+        <!-- 分类标签 -->
+        <div class="tabs">
+            <button class="tab active" data-category="all">全部商品</button>
+            <button class="tab" data-category="食品">食品</button>
+            <button class="tab" data-category="服务">服务</button>
+            <button class="tab" data-category="电子产品">电子产品</button>
+            <button class="tab" data-category="家居用品">家居用品</button>
+            <button class="tab" data-category="其他">其他</button>
+        </div>
+
+        <!-- 商品卡片容器 -->
+        <div id="product-container">
+            <div class="loading">加载中...</div>
+        </div>
+    </div>
+
+    <script type="module">
+        import url1 from '../peizhi/config.js';
+        const SHOP_ID = localStorage.getItem("current_shop_id");
+        const token = localStorage.getItem('sjlocaltoken');
+        const container = document.getElementById('product-container');
+        let allProducts = []; // 存储所有商品数据
+
+        // 初始化：获取商品数据 + 绑定事件
+        init();
+
+        async function init() {
+            try {
+                // 显示加载状态
+                container.innerHTML = '<div class="loading">加载中...</div>';
+
+                // 获取商品数据
+                const response = await axios({
+                    url: `${url1}/api/shops/${SHOP_ID}/products/`,
+                    method: 'GET',
+                    // headers: {
+                    //     'Authorization': `Bearer ${token}` // 若接口需要token则保留
+                    // },
+                    timeout: 5000
+                });
+
+                // 存储所有商品数据
+                allProducts = response.data.results || response.data || [];
+                updateFavoriteCount(); // 如果你后续要加收藏功能，这里可以保留
+                filterProducts(); // 初始过滤并渲染
+
+            } catch (error) {
+                console.error('获取商品失败：', error);
+                container.innerHTML = '<div class="no-data">数据加载失败，请刷新重试</div>';
+            }
+        }
+
+        // 绑定分类切换事件
+        document.querySelectorAll('.tab').forEach(tab => {
+            tab.addEventListener('click', function () {
+                document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+                this.classList.add('active');
+                filterProducts();
+            });
+        });
+
+        // 绑定实时搜索事件
+        document.getElementById('searchInput').addEventListener('input', filterProducts);
+
+        // 过滤商品（分类 + 搜索关键词）
+        function filterProducts() {
+            const activeCategory = document.querySelector('.tab.active').dataset.category;
+            const keyword = document.getElementById('searchInput').value.toLowerCase().trim();
+
+            // 过滤逻辑：匹配分类 + 匹配搜索关键词
+            const filteredProducts = allProducts.filter(product => {
+                // 分类匹配
+                const matchCategory = activeCategory === 'all' ||
+                    (product.category && product.category.toLowerCase() === activeCategory.toLowerCase());
+
+                // 搜索关键词匹配（名称、描述、分类）
+                const matchSearch = (product.name && product.name.toLowerCase().includes(keyword)) ||
+                    (product.description && product.description.toLowerCase().includes(keyword)) ||
+                    (product.category && product.category.toLowerCase().includes(keyword));
+
+                return matchCategory && matchSearch;
+            });
+
+            // 渲染过滤后的商品
+            renderProducts(filteredProducts);
+        }
+
+        // 渲染商品卡片
+        function renderProducts(products) {
+            if (products.length === 0) {
+                container.innerHTML = '<div class="no-data">未找到匹配的商品</div>';
+                return;
+            }
+
+            // 拼接所有商品卡片HTML
+            const cardsHtml = products.map(product => {
+                // 处理字段默认值
+                const productName = product.name || '未知商品';
+                const productCategory = product.category || '未分类';
+                const productDesc = product.description || '无描述';
+                const productPrice = product.price ? Number(product.price).toFixed(2) : '0.00';
+                const productImage = product.image || 'https://via.placeholder.com/300x200?text=暂无图片';
+                const createTime = product.created_at ? formatTime(product.created_at) : '未知时间';
+
+                return `
+                    <div class="product-card" data-id="${product.product_id || product.id}">
+                        <!-- 商品图片 -->
+                        <img src="${productImage}" alt="${productName}" class="product-img">
+                        <!-- 商品名称 -->
+                        <h3 class="product-title">${productName}</h3>
+                        <!-- 分类 -->
+                        <div class="product-info">分类：${productCategory}</div>
+                        <!-- 创建时间 -->
+                        <div class="product-info">创建时间：${createTime}</div>
+                        <!-- 描述 -->
+                        <div class="product-info">描述：${productDesc}</div>
+                        <!-- 价格 -->
+                        <div class="product-price">价格：¥${productPrice}</div>
+                    </div>
+                `;
+            }).join('');
+
+            // 渲染到页面
+            container.innerHTML = cardsHtml;
+
+            // 如果你需要给卡片加点击事件（比如跳转到详情页），可以在这里绑定
+            bindCardClickEvents();
+        }
+
+        // 绑定商品卡片点击事件（跳转到详情页）
+        function bindCardClickEvents() {
+            document.querySelectorAll('.product-card').forEach(card => {
+                card.addEventListener('click', function () {
+                    const productId = this.dataset.id;
+                    window.location.href = `drug_detail.html?id=${productId}`; // 跳转到详情页，路径根据实际情况调整
+                });
+            });
+        }
+
+        // 时间格式化函数
+        function formatTime(isoTime) {
+            const date = new Date(isoTime);
+            if (isNaN(date.getTime())) return '无效时间';
+            return `${date.getFullYear()}-${(date.getMonth() + 1).toString().padStart(2, '0')}-${date.getDate().toString().padStart(2, '0')} ${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}`;
+        }
+
+        // 占位函数：如果后续要加收藏功能，这里可以保留
+        function updateFavoriteCount() {
+            // 收藏计数逻辑（如果需要）
+        }
+    </script>
+</body>
+
+</html>

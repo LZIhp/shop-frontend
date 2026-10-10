@@ -1,0 +1,610 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport"
+        content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="white">
+    <meta name="format-detection" content="telephone=no">
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <title>店铺详情页（滑动切换）</title>
+    <style>
+        /* 全局重置 */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: "Microsoft Yahei", "PingFang SC", sans-serif;
+        }
+
+        body {
+            background-color: #f5f5f5;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .box {
+            width: 100%;
+            max-width: 420px;
+            min-height: 100vh;
+            height: 100%;
+            border: none;
+            border-radius: 0;
+            padding: 16px;
+            margin: 0 auto;
+            background-color: #fff;
+            box-shadow: none;
+            overflow: hidden;
+        }
+
+        .search-wrap {
+            margin-bottom: 16px;
+        }
+
+        .search-wrap input {
+            width: 100%;
+            height: 44px;
+            padding: 0 16px;
+            border: 1px solid #e5e5e5;
+            border-radius: 22px;
+            outline: none;
+            transition: border-color 0.2s;
+            font-size: 15px;
+        }
+
+        .search-wrap input:focus {
+            border-color: #409eff;
+            box-shadow: 0 0 0 2px rgba(64, 158, 255, 0.2);
+        }
+
+        .shop-header {
+            margin-bottom: 16px;
+            padding-bottom: 16px;
+            border-bottom: 1px solid #f5f5f5;
+        }
+
+        .shop-header h1 {
+            font-size: 18px;
+            color: #333;
+            margin-bottom: 12px;
+            font-weight: 600;
+        }
+
+        .shop-info {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .head_left {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background-color: #f5f5f5;
+            overflow: hidden;
+            flex-shrink: 0;
+        }
+
+        .headimg {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .head_right {
+            flex: 1;
+            overflow: hidden;
+        }
+
+        #shopname {
+            font-size: 16px;
+            color: #333;
+            margin-bottom: 4px;
+            font-weight: 500;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        #shopadress {
+            font-size: 13px;
+            color: #999;
+            display: -webkit-box;
+            -webkit-line-clamp: 1;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+
+        .tab-wrap {
+            display: flex;
+            background-color: #f8f8f8;
+            border-radius: 8px;
+            overflow: hidden;
+            margin-bottom: 12px;
+        }
+
+        .tab-item {
+            flex: 1;
+            text-align: center;
+            padding: 14px 0;
+            font-size: 15px;
+            color: #666;
+            cursor: pointer;
+            transition: all 0.2s;
+            position: relative;
+            user-select: none;
+        }
+
+        .tab-item:hover {
+            background-color: #f0f0f0;
+        }
+
+        .tab-item:active {
+            background-color: #e8e8e8;
+        }
+
+        .tab-item.active {
+            background-color: #409eff;
+            color: #fff;
+        }
+
+        .content-container {
+            height: calc(100vh - 220px);
+            min-height: 300px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .content-scroll {
+            display: flex;
+            width: 300%;
+            height: 100%;
+            transition: transform 0.3s ease;
+        }
+
+        .content-box {
+            width: calc(100% / 3);
+            height: 100%;
+            padding: 16px;
+            border-radius: 8px;
+            background-color: #fafafa;
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+            scrollbar-width: none;
+        }
+
+        .content-box::-webkit-scrollbar {
+            display: none;
+        }
+
+        .content-box h3 {
+            font-size: 16px;
+            color: #333;
+            margin-bottom: 16px;
+            font-weight: 500;
+        }
+
+        .content-box ul {
+            padding-left: 20px;
+        }
+
+        .content-box li {
+            font-size: 14px;
+            color: #666;
+            line-height: 28px;
+            margin-bottom: 4px;
+        }
+
+        #shopphone,
+        #shopmiaoshu,
+        #shop-hours,
+        #shop-service {
+            font-size: 14px;
+            color: #666;
+            line-height: 28px;
+            margin-bottom: 8px;
+        }
+
+        /* ========== 核心修改：商品两列布局（去掉瀑布流，改用网格） ========== */
+        .goods-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            /* 固定两列 */
+            gap: 10px;
+            /* 列/行间距 */
+            width: 100%;
+        }
+
+        .item {
+            background: white;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
+        }
+
+        .item-img {
+            width: 100%;
+            height: 120px;
+            /* 固定图片高度，保证排版整齐 */
+            object-fit: cover;
+            /* 图片裁剪，避免变形 */
+            display: block;
+        }
+
+        .item-info {
+            padding: 8px;
+        }
+
+        .item-title {
+            font-size: 13px;
+            line-height: 1.4;
+            display: -webkit-box;
+            -webkit-box-orient: vertical;
+            -webkit-line-clamp: 2;
+            overflow: hidden;
+            margin-bottom: 4px;
+            color: #333;
+        }
+
+        .item-price {
+            color: #ff5000;
+            font-size: 14px;
+            font-weight: bold;
+        }
+
+        .item-sales {
+            font-size: 11px;
+            color: #999;
+            margin-top: 2px;
+        }
+
+        .item-shop {
+            display: flex;
+            align-items: center;
+            margin-top: 4px;
+            font-size: 11px;
+            color: #666;
+        }
+
+        .shop-avatar {
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            margin-right: 4px;
+        }
+
+        /* 媒体查询 - 适配小屏手机（375px以下） */
+        @media screen and (max-width: 375px) {
+            .box {
+                padding: 12px;
+            }
+
+            .search-wrap input {
+                height: 40px;
+                font-size: 14px;
+            }
+
+            .head_left {
+                width: 50px;
+                height: 50px;
+            }
+
+            #shopname {
+                font-size: 15px;
+            }
+
+            #shopadress {
+                font-size: 12px;
+            }
+
+            .tab-item {
+                padding: 12px 0;
+                font-size: 14px;
+            }
+
+            .content-box {
+                padding: 12px;
+            }
+
+            .content-box h3 {
+                font-size: 15px;
+                margin-bottom: 12px;
+            }
+
+            .content-box li,
+            #shopphone,
+            #shopmiaoshu,
+            #shop-hours,
+            #shop-service {
+                font-size: 13px;
+                line-height: 26px;
+            }
+
+            .content-container {
+                height: calc(100vh - 200px);
+            }
+
+            /* 小屏调整商品图片高度 */
+            .item-img {
+                height: 100px;
+            }
+        }
+
+        /* 媒体查询 - 适配大屏手机（420px以上） */
+        @media screen and (min-width: 420px) {
+            .box {
+                padding: 20px;
+                margin: 10px auto;
+                border-radius: 12px;
+                box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+            }
+
+            .content-container {
+                height: calc(100vh - 240px);
+            }
+        }
+
+        /* 横屏适配 */
+        @media screen and (orientation: landscape) {
+            .content-container {
+                height: calc(100vh - 160px);
+            }
+
+            .head_left {
+                width: 40px;
+                height: 40px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div id="box" class="box">
+        <div class="search-wrap">
+            <input type="text" placeholder="搜索商品/店铺">
+        </div>
+
+        <!-- 店铺头部 -->
+        <div class="shop-header">
+            <h1>店铺详情</h1>
+            <div class="shop-info">
+                <div class="head_left">
+                    <img src="https://picsum.photos/60/60" alt="店铺头像" class="headimg">
+                </div>
+                <div class="head_right">
+                    <div id="shopname">未加载</div>
+                    <div id="shopadress">未加载</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 切换标签 -->
+        <div class="tab-wrap">
+            <div class="tab-item active" data-index="0">全部商品</div>
+            <div class="tab-item" data-index="1">分类</div>
+            <div class="tab-item" data-index="2">店铺描述</div>
+        </div>
+
+        <!-- 内容容器（滑动区域） -->
+        <div class="content-container" id="swipeContainer">
+            <div class="content-scroll" id="contentScroll">
+                <!-- 全部商品框：新增goods-grid容器 -->
+                <div id="all-goods" class="content-box">
+                    <h3>全部商品</h3>
+                    <div class="goods-grid" id="goodsGrid"></div> <!-- 商品网格容器 -->
+                </div>
+
+                <!-- 分类框 -->
+                <div id="category" class="content-box">
+                    <h3>商品分类</h3>
+                    <ul>
+                        <li>书写工具（笔类）</li>
+                        <li>纸品本册（笔记本/草稿纸）</li>
+                        <li>修正工具（橡皮/修正带）</li>
+                        <li>收纳用品（文件夹/文件袋）</li>
+                        <li>办公耗材（打印机纸/墨盒）</li>
+                        <li>绘图工具（尺子/圆规）</li>
+                        <li>学生文具（书包/文具盒）</li>
+                    </ul>
+                </div>
+
+                <!-- 店铺描述框 -->
+                <div id="shop-desc" class="content-box">
+                    <h3>店铺信息</h3>
+                    店铺电话：<div id="shopphone"></div>
+                    <br>
+                    店铺地址：<div id="adress2"></div>
+                    <br>
+                    店铺描述：<div id="description"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        import url1 from '../peizhi/config.js';
+
+        // 图片URL格式化函数
+        function formatImageUrl(oldImageUrl) {
+            try {
+                const urlObj = new URL(oldImageUrl);
+                return `${url1}${urlObj.pathname}`;
+            } catch (e) {
+                // 异常时返回默认占位图
+                return "https://picsum.photos/120/120?random=default";
+            }
+        }
+
+        // DOM元素获取
+        const shop_name = document.getElementById('shopname')
+        const shopadress = document.getElementById('shopadress')
+        const shopphone = document.getElementById('shopphone')
+        const adress2 = document.getElementById('adress2')
+        const description = document.getElementById('description')
+        const goodsGrid = document.getElementById('goodsGrid'); // 商品网格容器
+
+        // 解析URL参数获取shop_id
+        const urlParams = new URLSearchParams(window.location.search);
+        const shop_id = urlParams.get("shop_id");
+        console.log("提取到的shop_id：", shop_id);
+
+        // 加载店铺基础信息
+        if (shop_id) {
+            axios({
+                url: `${url1}/api/shops/${shop_id}/`,
+                method: 'GET',
+            }).then(result => {
+                shop_name.textContent = result.data.name || '未知店铺';
+                shopadress.textContent = result.data.address || '未填写';
+                adress2.textContent = result.data.address || '未填写';
+                shopphone.textContent = result.data.phone_number || '未填写';
+                description.textContent = result.data.description || '暂无描述';
+            }).catch(err => {
+                console.error('加载店铺信息失败：', err);
+                shop_name.textContent = '加载失败';
+            });
+
+            // ========== 核心修改：加载店铺商品并渲染为两列布局 ==========
+            axios({
+                url: `${url1}/api/shops/${shop_id}/products/`,
+                method: 'GET',
+                timeout: 5000
+            }).then(result => {
+                const products = result.data.results || [];
+                console.log("店铺商品列表：", products);
+
+                // 清空容器（避免重复渲染）
+                goodsGrid.innerHTML = '';
+
+                products.forEach(item => {
+                    const itemElement = document.createElement("div");
+                    itemElement.className = "item";
+
+                    // 商品HTML结构（适配移动端）
+                    itemElement.innerHTML = `
+                        <img src="${formatImageUrl(item.image)}" class="item-img" alt="${item.name || '商品图片'}">
+                        <div class="item-info">
+                            <div class="item-title">${item.name || '无商品名'}</div>
+                            <div class="item-price">¥${item.price || '0.00'}</div>
+                            <div class="item-sales">${item.sales || '0'}人付款</div>
+                            <div class="item-shop">
+                            </div>
+                        </div>
+                    `;
+                    // 商品点击事件（跳转商品详情）
+                    itemElement.addEventListener('click', function () {
+                        window.location.href = `procuctsxinxi.html?id=${item.product_id || item.id}&shop_id=${shop_id}`;
+                    });
+                    // 直接添加到网格容器（CSS自动排版为两列）
+                    goodsGrid.appendChild(itemElement);
+                });
+            }).catch(err => {
+                console.error('加载商品列表失败：', err);
+                goodsGrid.innerHTML = '<div style="text-align:center; color:#999; padding:20px 0; grid-column: span 2;">商品加载失败</div>';
+            });
+        } else {
+            shop_name.textContent = '未传入店铺ID';
+            goodsGrid.innerHTML = '<div style="text-align:center; color:#999; padding:20px 0; grid-column: span 2;">请传入有效的店铺ID</div>';
+        }
+
+        // 原有滑动切换逻辑（保留不变）
+        const swipeContainer = document.getElementById('swipeContainer');
+        const contentScroll = document.getElementById('contentScroll');
+        const tabItems = document.querySelectorAll('.tab-item');
+        let startX = 0;
+        let moveX = 0;
+        let currentIndex = 0;
+        const tabCount = tabItems.length;
+        const threshold = 50;
+
+        // 适配窗口大小变化
+        function resizeHandler() {
+            const box = document.querySelector('.box');
+            const headerHeight = box.querySelector('.shop-header').offsetHeight +
+                box.querySelector('.search-wrap').offsetHeight +
+                box.querySelector('.tab-wrap').offsetHeight + 40;
+            swipeContainer.style.height = `calc(100vh - ${headerHeight}px)`;
+            switchTab(currentIndex);
+        }
+
+        window.addEventListener('resize', resizeHandler);
+        window.addEventListener('orientationchange', resizeHandler);
+
+        // 切换标签函数
+        function switchTab(index) {
+            if (index < 0 || index >= tabCount) return;
+            currentIndex = index;
+
+            tabItems.forEach((item, i) => {
+                item.classList.toggle('active', i === index);
+            });
+            contentScroll.style.transform = `translateX(-${index * (100 / tabCount)}%)`;
+        }
+
+        // 标签点击事件
+        tabItems.forEach((tab, index) => {
+            tab.addEventListener('click', () => {
+                switchTab(index);
+            });
+        });
+
+        // 触摸滑动逻辑
+        let isScrolling = false;
+        let touchStartTime = 0;
+
+        swipeContainer.addEventListener('touchstart', (e) => {
+            if (isScrolling) return;
+            touchStartTime = Date.now();
+            startX = e.touches[0].clientX;
+            contentScroll.style.transition = 'none';
+        });
+
+        swipeContainer.addEventListener('touchmove', (e) => {
+            if (isScrolling) return;
+            moveX = e.touches[0].clientX - startX;
+            const baseOffset = currentIndex * (100 / tabCount);
+            const offsetX = -baseOffset + (moveX / swipeContainer.offsetWidth) * 100;
+
+            if (currentIndex === 0 && moveX > 0) {
+                contentScroll.style.transform = `translateX(${offsetX * 0.5}%)`;
+            } else if (currentIndex === tabCount - 1 && moveX < 0) {
+                contentScroll.style.transform = `translateX(${offsetX * 0.5}%)`;
+            } else {
+                contentScroll.style.transform = `translateX(${offsetX}%)`;
+            }
+        });
+
+        swipeContainer.addEventListener('touchend', (e) => {
+            if (isScrolling) return;
+            const touchEndTime = Date.now();
+            const touchDuration = touchEndTime - touchStartTime;
+            contentScroll.style.transition = 'transform 0.3s ease';
+
+            const effectiveThreshold = touchDuration < 200 ? 30 : 50;
+            isScrolling = true;
+            setTimeout(() => {
+                isScrolling = false;
+            }, 300);
+
+            if (moveX < -effectiveThreshold) {
+                switchTab(currentIndex + 1);
+            } else if (moveX > effectiveThreshold) {
+                switchTab(currentIndex - 1);
+            } else {
+                switchTab(currentIndex);
+            }
+
+            startX = 0;
+            moveX = 0;
+        });
+
+        // 初始化
+        document.addEventListener('DOMContentLoaded', () => {
+            resizeHandler();
+            switchTab(0);
+        });
+    </script>
+</body>
+
+</html>

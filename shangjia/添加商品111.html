@@ -1,0 +1,916 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>添加商品</title>
+    <!-- 保留必要依赖：先引入jQuery（Bootstrap 4必需）、再引入Bootstrap、最后引入其他依赖 -->
+    <script src="https://cdn.jsdelivr.net/npm/jquery@3.6.0/dist/jquery.min.js"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/css/bootstrap.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+
+    <script>
+        // 保留商品相关的Tailwind配置
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#3b82f6',
+                        danger: '#ef4444',
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        /* 原有样式保持不变 */
+        .upload-area {
+            border: 2px dashed #e5e7eb;
+            border-radius: 8px;
+            padding: 30px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-bottom: 20px;
+        }
+
+        .upload-area:hover {
+            border-color: #3b82f6;
+            background-color: #eff6ff;
+        }
+
+        .upload-icon {
+            font-size: 30px;
+            color: #3b82f6;
+            margin-bottom: 15px;
+        }
+
+        .progress-container {
+            margin-top: 20px;
+            display: none;
+        }
+
+        .progress-bar {
+            height: 6px;
+            background-color: #e5e7eb;
+            border-radius: 3px;
+            overflow: hidden;
+        }
+
+        .progress {
+            height: 100%;
+            background-color: #3b82f6;
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+
+        .form-hint {
+            margin-top: 5px;
+            font-size: 13px;
+            color: #6b7280;
+        }
+
+        .toast {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            padding: 12px 20px;
+            border-radius: 8px;
+            color: white;
+            z-index: 9999;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            display: flex;
+            align-items: center;
+            opacity: 0;
+            transform: translateY(20px);
+            transition: all 0.3s ease;
+        }
+
+        .toast.show {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .toast.success {
+            background-color: #10b981;
+        }
+
+        .toast.error {
+            background-color: #ef4444;
+        }
+
+        .toast i {
+            margin-right: 8px;
+        }
+
+        /* 新增：摄像头相关样式 */
+        #cameraModal .modal-body {
+            padding: 0;
+            position: relative;
+        }
+
+        #camera-preview {
+            width: 100%;
+            height: auto;
+            background-color: #000;
+            max-height: 80vh;
+        }
+
+        .camera-actions {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            display: flex;
+            justify-content: space-around;
+            padding: 15px;
+            background-color: rgba(0, 0, 0, 0.5);
+        }
+
+        .camera-btn {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background-color: #3b82f6;
+            color: white;
+            border: none;
+            font-size: 20px;
+            cursor: pointer;
+            outline: none;
+        }
+
+        .camera-btn.cancel {
+            background-color: #ef4444;
+        }
+
+        .camera-btn.switch {
+            background-color: transparent;
+            border: 2px solid white;
+        }
+
+        /* 移动设备适配 */
+        @media (max-width: 768px) {
+            #cameraModal .modal-dialog {
+                margin: 0;
+                max-width: 100%;
+                height: 100vh;
+            }
+
+            #cameraModal .modal-content {
+                height: 100vh;
+                border: none;
+                border-radius: 0;
+            }
+        }
+
+        /* 新增：手机端上传选择弹窗样式 */
+        .upload-select-modal {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: white;
+            border-radius: 16px 16px 0 0;
+            padding: 20px;
+            z-index: 10000;
+            transform: translateY(100%);
+            transition: transform 0.3s ease;
+        }
+
+        .upload-select-modal.show {
+            transform: translateY(0);
+        }
+
+        .upload-select-title {
+            text-align: center;
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 25px;
+            color: #333;
+        }
+
+        .upload-select-btns {
+            display: flex;
+            justify-content: space-around;
+            margin-bottom: 30px;
+        }
+
+        .upload-select-btn {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+            width: 80px;
+        }
+
+        .upload-select-icon {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background: #f3f4f6;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            color: #3b82f6;
+        }
+
+        .upload-select-text {
+            font-size: 14px;
+            color: #666;
+        }
+
+        .upload-select-cancel {
+            width: 100%;
+            padding: 12px;
+            background: #f9fafb;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            color: #333;
+            cursor: pointer;
+        }
+
+        /* 遮罩层 */
+        .modal-backdrop-custom {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 9999;
+            display: none;
+        }
+
+        .modal-backdrop-custom.show {
+            display: block;
+        }
+    </style>
+</head>
+
+<body class="bg-gray-50 min-h-screen p-4 md:p-8">
+    <!-- 原有内容保持不变 -->
+    <div class="max-w-2xl mx-auto p-4 sm:p-6">
+        <div class="mb-6">
+            <h1 class="text-2xl font-bold text-gray-800">添加商品</h1>
+            <p class="text-gray-500 mt-1">请填写商品信息并提交</p>
+        </div>
+
+        <div class="bg-white rounded-lg shadow-sm p-6">
+            <form id="productForm">
+                <!-- 商品名称 -->
+                <div class="mb-4">
+                    <label for="sjname" class="block text-sm font-medium text-gray-700 mb-1">商品名称 <span
+                            class="text-danger">*</span></label>
+                    <input type="text" id="sjname" name="sjname"
+                        class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary"
+                        placeholder="输入商品名称" required>
+                </div>
+
+                <!-- 商品描述 -->
+                <div class="mb-4">
+                    <label for="description" class="block text-sm font-medium text-gray-700 mb-1">商品描述</label>
+                    <textarea id="description" name="description" rows="3"
+                        class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary"
+                        placeholder="输入商品描述（可选）"></textarea>
+                </div>
+
+                <!-- 商品价格 -->
+                <div class="mb-4">
+                    <label for="price" class="block text-sm font-medium text-gray-700 mb-1">价格 <span
+                            class="text-danger">*</span></label>
+                    <div class="relative">
+                        <span class="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">¥</span>
+                        <input type="number" id="price" name="price" step="0.01" min="0"
+                            class="w-full pl-8 pr-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary"
+                            placeholder="0.00" required>
+                    </div>
+                </div>
+
+                <!-- 商品分类 -->
+                <div class="mb-4">
+                    <label for="category" class="block text-sm font-medium text-gray-700 mb-1">分类 <span
+                            class="text-danger">*</span></label>
+                    <select id="category" name="category"
+                        class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary"
+                        required>
+                        <option value="">请选择分类</option>
+                        <option value="食品">食品</option>
+                        <option value="服装">服装</option>
+                        <option value="电子产品">电子产品</option>
+                        <option value="家居用品">家居用品</option>
+                        <option value="其他">其他</option>
+                    </select>
+                </div>
+
+                <!-- 商品状态 -->
+                <div class="mb-6">
+                    <label class="block text-sm font-medium text-gray-700 mb-1">初始状态</label>
+                    <div class="flex items-center space-x-4">
+                        <label class="inline-flex items-center">
+                            <input type="radio" name="is_active" value="true" class="text-primary focus:ring-primary"
+                                checked>
+                            <span class="ml-2 text-gray-700">上架</span>
+                        </label>
+                        <label class="inline-flex items-center">
+                            <input type="radio" name="is_active" value="false" class="text-primary focus:ring-primary">
+                            <span class="ml-2 text-gray-700">下架</span>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- 商品图片上传（修改提示文本） -->
+                <div class="form-group mb-6">
+                    <label class="form-label block text-sm font-medium text-gray-700 mb-1">商品图片 <span
+                            class="text-danger">*</span></label>
+                    <div class="upload-area" id="product-photo-upload">
+                        <div class="upload-icon">
+                            <i class="fa fa-images"></i>
+                        </div>
+                        <div>
+                            <p>点击上传图片、拍照或拖拽文件至此处（最多5张）</p>
+                            <p class="form-hint">支持JPG、PNG格式，自动压缩至1MB以内</p>
+                        </div>
+                        <input type="file" accept="image/*" multiple style="display: none;" id="productImages">
+                        <input type="file" accept="image/*" multiple style="display: none;" id="productImages">
+                    </div>
+
+                    <div id="image-preview-container" class="flex flex-wrap gap-3 mt-3"></div>
+
+                    <div class="progress-container" id="product-progress-container">
+                        <div class="progress-bar">
+                            <div class="progress" id="product-upload-progress"></div>
+                        </div>
+                        <div class="form-hint" id="product-upload-status">上传中...</div>
+                    </div>
+                </div>
+
+                <!-- 提交按钮 -->
+                <div class="flex justify-end space-x-3">
+                    <button type="button" id="cancelBtn"
+                        class="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 transition-colors">
+                        取消
+                    </button>
+                    <button type="submit"
+                        class="px-4 py-2 bg-primary text-white rounded-md hover:bg-primary/90 transition-colors">
+                        <i class="fa fa-save mr-1"></i> 保存商品
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- 新增：摄像头模态框 -->
+    <div class="modal fade" id="cameraModal" tabindex="-1" role="dialog" aria-hidden="true">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-body p-0">
+                    <video id="camera-preview" autoplay playsinline muted></video>
+                    <canvas id="camera-canvas" style="display: none;"></canvas>
+                    <div class="camera-actions">
+                        <button class="camera-btn cancel" id="cancel-camera">
+                            <i class="fa fa-times"></i>
+                        </button>
+                        <button class="camera-btn" id="take-photo">
+                            <i class="fa fa-camera"></i>
+                        </button>
+                        <button class="camera-btn switch" id="switch-camera">
+                            <i class="fa fa-refresh"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 新增：手机端上传选择弹窗（相册/拍照） -->
+    <div class="modal-backdrop-custom" id="uploadSelectBackdrop"></div>
+    <div class="upload-select-modal" id="uploadSelectModal">
+        <div class="upload-select-title">选择上传方式</div>
+        <div class="upload-select-btns">
+            <div class="upload-select-btn" id="selectAlbumBtn">
+                <div class="upload-select-icon">
+                    <i class="fa fa-folder-open"></i>
+                </div>
+                <div class="upload-select-text">相册</div>
+            </div>
+            <div class="upload-select-btn" id="selectCameraBtn">
+                <div class="upload-select-icon">
+                    <i class="fa fa-camera"></i>
+                </div>
+                <div class="upload-select-text">拍照</div>
+            </div>
+        </div>
+        <button class="upload-select-cancel" id="closeUploadSelectBtn">取消</button>
+    </div>
+
+    <!-- 提示消息组件 -->
+    <div id="toast" class="toast">
+        <i id="toastIcon" class="fa fa-check"></i>
+        <span id="toastText"></span>
+    </div>
+
+    <script type="module">
+        import url1 from '../peizhi/config.js';
+        let productImageUpload;
+        // 新增：摄像头相关变量
+        let cameraStream = null;
+        let isFrontCamera = false; // 默认使用后置摄像头
+        const MAX_IMAGE_SIZE = 1 * 1024 * 1024; // 1MB
+        // 新增：存储摄像头拍摄的图片（关键：解决拍摄图片无法提交的问题）
+        let cameraImages = [];
+        // 新增：判断是否为移动设备
+        const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+
+        document.addEventListener('DOMContentLoaded', function () {
+            productImageUpload = initProductImageUpload();
+            bindProductFormSubmit();
+            document.getElementById('cancelBtn').addEventListener('click', function () {
+                document.getElementById('productForm').reset();
+                productImageUpload.clearImages();
+            });
+            // 新增：初始化摄像头功能
+            initCameraFunctionality();
+            // 新增：初始化手机端上传选择弹窗
+            initMobileUploadSelect();
+        });
+
+        /**
+         * 新增：初始化手机端上传选择弹窗
+         */
+        function initMobileUploadSelect() {
+            const uploadArea = document.getElementById('product-photo-upload');
+            const uploadSelectModal = document.getElementById('uploadSelectModal');
+            const uploadSelectBackdrop = document.getElementById('uploadSelectBackdrop');
+            const selectAlbumBtn = document.getElementById('selectAlbumBtn');
+            const selectCameraBtn = document.getElementById('selectCameraBtn');
+            const closeUploadSelectBtn = document.getElementById('closeUploadSelectBtn');
+            const fileInput = document.getElementById('productImages');
+
+            // 手机端：点击上传区域显示选择弹窗
+            uploadArea.addEventListener('click', function (e) {
+                if (isMobile && !e.target.closest('.delete-image') && !e.target.closest('.relative')) {
+                    uploadSelectModal.classList.add('show');
+                    uploadSelectBackdrop.classList.add('show');
+                }
+            });
+
+            // 选择「相册」：触发文件选择框
+            selectAlbumBtn.addEventListener('click', function () {
+                fileInput.click();
+                hideUploadSelectModal();
+            });
+
+            // 选择「拍照」：打开摄像头模态框
+            selectCameraBtn.addEventListener('click', function () {
+                $('#cameraModal').modal('show');
+                hideUploadSelectModal();
+            });
+
+            // 关闭选择弹窗
+            closeUploadSelectBtn.addEventListener('click', hideUploadSelectModal);
+            uploadSelectBackdrop.addEventListener('click', hideUploadSelectModal);
+
+            // 隐藏弹窗的辅助函数
+            function hideUploadSelectModal() {
+                uploadSelectModal.classList.remove('show');
+                uploadSelectBackdrop.classList.remove('show');
+            }
+        }
+
+        /**
+         * 1. 商品图片上传核心逻辑（扩展：支持摄像头图片、压缩）
+         */
+        function initProductImageUpload() {
+            const uploadArea = document.getElementById('product-photo-upload');
+            const fileInput = document.getElementById('productImages');
+            const previewContainer = document.getElementById('image-preview-container');
+            const progressContainer = document.getElementById('product-progress-container');
+            const progressBar = document.getElementById('product-upload-progress');
+            const uploadStatus = document.getElementById('product-upload-status');
+
+            // 电脑端：点击上传区域直接触发文件选择框（不显示选择弹窗）
+            if (!isMobile) {
+                uploadArea.addEventListener('click', function (e) {
+                    if (!e.target.closest('.delete-image') && !e.target.closest('.relative')) {
+                        fileInput.click();
+                    }
+                });
+            }
+
+            // 保留原有拖放功能
+            uploadArea.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                uploadArea.style.borderColor = '#3b82f6';
+                uploadArea.style.backgroundColor = '#eff6ff';
+            });
+            uploadArea.addEventListener('dragleave', () => {
+                uploadArea.style.borderColor = '#e5e7eb';
+                uploadArea.style.backgroundColor = 'transparent';
+            });
+            uploadArea.addEventListener('drop', (e) => {
+                e.preventDefault();
+                uploadArea.style.borderColor = '#e5e7eb';
+                uploadArea.style.backgroundColor = 'transparent';
+                handleFiles(e.dataTransfer.files);
+            });
+
+            // 保留原有文件选择功能（电脑上传/手机相册）
+            fileInput.addEventListener('change', (e) => {
+                handleFiles(e.target.files);
+            });
+
+            // 处理选中的图片（电脑上传/拖拽/手机相册）- 新增压缩功能
+            async function handleFiles(files) {
+                const currentCount = previewContainer.querySelectorAll('.relative').length;
+                if (currentCount + files.length > 5) {
+                    showToast('最多只能上传5张图片', 'error');
+                    return;
+                }
+
+                for (let i = 0; i < files.length; i++) {
+                    const file = files[i];
+                    if (!file.type.startsWith('image/')) {
+                        showToast('请上传图片文件（JPG/PNG）', 'error');
+                        continue;
+                    }
+
+                    // 新增：压缩图片至1MB以内
+                    const compressedBlob = await compressImage(file);
+
+                    const reader = new FileReader();
+                    reader.onload = (e) => {
+                        const preview = document.createElement('div');
+                        preview.className = 'relative';
+                        preview.style.width = '120px';
+                        preview.style.height = '120px';
+                        preview.dataset.filename = file.name;
+                        preview.dataset.type = 'file'; // 标记为文件上传的图片
+
+                        preview.innerHTML = `
+                            <img src="${e.target.result}" style="width:100%;height:100%;object-fit:cover;border-radius:4px;border:1px solid #eee;" alt="商品图片">
+                            <button type="button" class="delete-image absolute top-1 right-1 bg-danger text-white rounded-full w-6 h-6 flex items-center justify-center" data-name="${file.name}">
+                                <i class="fa fa-times text-xs"></i>
+                            </button>
+                        `;
+
+                        previewContainer.appendChild(preview);
+
+                        // 绑定删除事件：同步删除存储的图片数据
+                        preview.querySelector('.delete-image').addEventListener('click', function () {
+                            const filename = preview.dataset.filename;
+                            // 移除文件上传的图片引用
+                            fileInput.value = '';
+                            // 移除预览
+                            preview.remove();
+                        });
+                    };
+                    reader.readAsDataURL(compressedBlob);
+                }
+            }
+
+            // 新增：添加摄像头拍摄的图片（同步存储到cameraImages数组）
+            function addCameraImage(blob, fileName) {
+                // 存储图片到全局数组（供提交时使用）
+                cameraImages.push({
+                    blob: blob,
+                    filename: fileName
+                });
+
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    const preview = document.createElement('div');
+                    preview.className = 'relative';
+                    preview.style.width = '120px';
+                    preview.style.height = '120px';
+                    preview.dataset.filename = fileName;
+                    preview.dataset.type = 'camera'; // 标记为摄像头拍摄的图片
+
+                    preview.innerHTML = `
+                        <img src="${e.target.result}" style="width:100%;height:100%;object-fit:cover;border-radius:4px;border:1px solid #eee;" alt="商品图片">
+                        <button type="button" class="delete-image absolute top-1 right-1 bg-danger text-white rounded-full w-6 h-6 flex items-center justify-center" data-name="${fileName}">
+                            <i class="fa fa-times text-xs"></i>
+                        </button>
+                    `;
+
+                    previewContainer.appendChild(preview);
+
+                    // 绑定删除事件：同步删除cameraImages中的数据
+                    preview.querySelector('.delete-image').addEventListener('click', function () {
+                        const filename = preview.dataset.filename;
+                        cameraImages = cameraImages.filter(img => img.filename !== filename);
+                        preview.remove();
+                    });
+                };
+                reader.readAsDataURL(blob);
+            }
+
+            return {
+                // 关键修复：同步收集文件上传和摄像头拍摄的图片
+                getSelectedImages: () => {
+                    const result = [];
+
+                    // 1. 收集文件上传的图片（电脑/手机相册）
+                    const filePreviews = previewContainer.querySelectorAll('[data-type="file"]');
+                    Array.from(fileInput.files).forEach(file => {
+                        if (previewContainer.querySelector(`[data-filename="${file.name}"][data-type="file"]`)) {
+                            result.push(file);
+                        }
+                    });
+
+                    // 2. 收集摄像头拍摄的图片（直接从数组获取，无异步问题）
+                    cameraImages.forEach(img => {
+                        const file = new File([img.blob], `${img.filename}.jpg`, { type: 'image/jpeg' });
+                        result.push(file);
+                    });
+
+                    return result;
+                },
+                // 获取图片总数（用于表单验证）
+                getImageCount: () => {
+                    return previewContainer.querySelectorAll('.relative').length;
+                },
+                showProgress: () => {
+                    progressContainer.style.display = 'block';
+                },
+                updateProgress: (percent) => {
+                    progressBar.style.width = `${percent}%`;
+                    uploadStatus.textContent = `上传中...${percent}%`;
+                    if (percent === 100) {
+                        uploadStatus.textContent = '上传完成，正在提交...';
+                    }
+                },
+                hideProgress: () => {
+                    progressContainer.style.display = 'none';
+                },
+                clearImages: () => {
+                    previewContainer.innerHTML = '';
+                    fileInput.value = '';
+                    cameraImages = []; // 清空摄像头图片数组
+                },
+                // 供摄像头模块调用：添加拍摄的图片
+                addCameraImage: addCameraImage
+            };
+        }
+
+        /**
+         * 2. 初始化摄像头功能（手机端）
+         */
+        function initCameraFunctionality() {
+            const video = document.getElementById('camera-preview');
+            const canvas = document.getElementById('camera-canvas');
+            const takePhotoBtn = document.getElementById('take-photo');
+            const cancelBtn = document.getElementById('cancel-camera');
+            const switchBtn = document.getElementById('switch-camera');
+
+            // 修复：模态框显示时启动摄像头（Bootstrap 4事件）
+            $('#cameraModal').on('shown.bs.modal', async () => {
+                try {
+                    // 停止已有流，避免占用摄像头
+                    if (cameraStream) {
+                        cameraStream.getTracks().forEach(track => track.stop());
+                    }
+
+                    // 获取摄像头流（优先后置摄像头）
+                    const constraints = {
+                        video: {
+                            facingMode: isFrontCamera ? 'user' : 'environment',
+                            width: { ideal: 1280 },
+                            height: { ideal: 960 },
+                            facingMode: { exact: isFrontCamera ? 'user' : 'environment' }
+                        }
+                    };
+
+                    // 兼容不同浏览器的约束写法
+                    try {
+                        cameraStream = await navigator.mediaDevices.getUserMedia(constraints);
+                    } catch (error) {
+                        // 若精确匹配失败，使用模糊匹配
+                        delete constraints.video.facingMode.exact;
+                        cameraStream = await navigator.mediaDevices.getUserMedia(constraints);
+                    }
+
+                    video.srcObject = cameraStream;
+
+                    // 设置画布尺寸与视频一致
+                    video.onloadedmetadata = () => {
+                        canvas.width = video.videoWidth;
+                        canvas.height = video.videoHeight;
+                    };
+                } catch (err) {
+                    console.error('摄像头访问失败:', err);
+                    showToast('无法访问摄像头，请检查权限或设备设置', 'error');
+                    $('#cameraModal').modal('hide'); // 修复：关闭模态框
+                }
+            });
+
+            // 修复：模态框隐藏时停止摄像头（Bootstrap 4事件）
+            $('#cameraModal').on('hidden.bs.modal', () => {
+                if (cameraStream) {
+                    cameraStream.getTracks().forEach(track => track.stop());
+                    cameraStream = null;
+                }
+            });
+
+            // 拍照按钮：捕获画面并压缩
+            takePhotoBtn.addEventListener('click', async () => {
+                const ctx = canvas.getContext('2d');
+
+                // 前置摄像头镜像处理（更符合用户习惯）
+                if (isFrontCamera) {
+                    ctx.save();
+                    ctx.translate(canvas.width, 0);
+                    ctx.scale(-1, 1);
+                    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+                    ctx.restore();
+                } else {
+                    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+                }
+
+                // 转换为Blob并压缩至1MB以内
+                canvas.toBlob(async (blob) => {
+                    const compressedBlob = await compressImage(blob);
+                    // 添加到预览区和存储数组
+                    productImageUpload.addCameraImage(compressedBlob, `camera-${Date.now()}`);
+                    // 修复：关闭模态框
+                    $('#cameraModal').modal('hide');
+                }, 'image/jpeg', 0.9);
+            });
+
+            // 取消按钮：关闭模态框
+            cancelBtn.addEventListener('click', () => {
+                $('#cameraModal').modal('hide');
+            });
+
+            // 切换摄像头：前置/后置
+            switchBtn.addEventListener('click', () => {
+                isFrontCamera = !isFrontCamera;
+                if (cameraStream) {
+                    cameraStream.getTracks().forEach(track => track.stop());
+                    // 重新启动摄像头（触发shown.bs.modal事件）
+                    $('#cameraModal').modal('hide').modal('show');
+                }
+            });
+        }
+
+        /**
+         * 3. 图片压缩功能（确保大小≤1MB）
+         */
+        function compressImage(blob) {
+            return new Promise((resolve) => {
+                const img = new Image();
+                const url = URL.createObjectURL(blob);
+
+                img.onload = function () {
+                    URL.revokeObjectURL(url);
+
+                    // 创建画布
+                    const canvas = document.createElement('canvas');
+                    const ctx = canvas.getContext('2d');
+
+                    // 步骤1：按比例缩小图片尺寸（最大边长1280px）
+                    let width = img.width;
+                    let height = img.height;
+                    const maxDimension = 1280;
+
+                    if (width > height && width > maxDimension) {
+                        height = Math.round((height * maxDimension) / width);
+                        width = maxDimension;
+                    } else if (height > maxDimension) {
+                        width = Math.round((width * maxDimension) / height);
+                        height = maxDimension;
+                    }
+
+                    canvas.width = width;
+                    canvas.height = height;
+                    ctx.drawImage(img, 0, 0, width, height);
+
+                    // 步骤2：调整JPEG质量，确保大小≤1MB
+                    let quality = 0.9;
+                    const step = 0.1; // 每次调整的质量步长
+
+                    function compressLoop() {
+                        canvas.toBlob((compressedBlob) => {
+                            if (compressedBlob.size <= MAX_IMAGE_SIZE || quality <= 0.1) {
+                                resolve(compressedBlob);
+                            } else {
+                                quality -= step;
+                                compressLoop();
+                            }
+                        }, 'image/jpeg', quality);
+                    }
+
+                    compressLoop();
+                };
+
+                img.src = url;
+            });
+        }
+
+        /**
+         * 4. 商品表单提交逻辑（兼容摄像头图片）
+         */
+        function bindProductFormSubmit() {
+            const productForm = document.getElementById('productForm');
+
+            productForm.addEventListener('submit', function (e) {
+                e.preventDefault();
+
+                // 1. 验证店铺ID
+                const shopId = localStorage.getItem('current_shop_id');
+                if (!shopId) {
+                    showToast('本地未存储店铺ID，请先完成店铺绑定', 'error');
+                    return;
+                }
+
+                // 2. 验证图片（关键：使用图片总数验证，包含摄像头拍摄的图片）
+                const imageCount = productImageUpload.getImageCount();
+                if (imageCount === 0) {
+                    showToast('请至少上传一张商品图片', 'error');
+                    return;
+                }
+
+                // 3. 收集表单数据
+                const formData = new FormData();
+                formData.append('shop_id', shopId);
+                formData.append('name', document.getElementById('sjname').value);
+                formData.append('description', document.getElementById('description').value);
+                formData.append('price', parseFloat(document.getElementById('price').value));
+                formData.append('category', document.getElementById('category').value);
+                formData.append('is_active', document.querySelector('input[name="is_active"]:checked').value === 'true');
+
+                // 4. 添加所有图片（文件上传 + 摄像头拍摄）
+                const selectedImages = productImageUpload.getSelectedImages();
+                selectedImages.forEach((image) => {
+                    formData.append('image', image); // 若后端支持多图数组，可改为'image[]'
+                });
+
+                // 5. 验证登录状态
+                const token = localStorage.getItem('sjlocaltoken');
+                if (!token) {
+                    showToast('未检测到登录状态，请先登录', 'error');
+                    return;
+                }
+
+                // 6. 显示上传进度
+                productImageUpload.showProgress();
+                productImageUpload.updateProgress(0);
+
+                // 7. 提交表单到后端
+                axios({
+                    url: `${url1}/api/products/`,
+                    method: 'POST',
+                    data: formData,
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    },
+                    onUploadProgress: (progressEvent) => {
+                        const percent = Math.round((progressEvent.loaded / progressEvent.total) * 100);
+                        productImageUpload.updateProgress(percent);
+                    }
+                })
+                    .then(response => {
+                        productImageUpload.hideProgress();
+                        productForm.reset();
+                        productImageUpload.clearImages();
+                        showToast('商品添加成功！', 'success');
+                        console.log('添加商品成功：', response.data);
+                    })
+                    .catch(error => {
+                        productImageUpload.hideProgress();
+                        const errorMsg = error.response?.data?.message || '添加失败，请稍后重试';
+                        showToast(`商品添加失败：${errorMsg}`, 'error');
+                        console.error('添加商品失败：', error.response || error);
+                    });
+            });
+        }
+
+        /**
+         * 5. 提示消息工具
+         */
+        function showToast(message, type = 'success') {
+            const toast = document.getElementById('toast');
+            const toastIcon = document.getElementById('toastIcon');
+            const toastText = document.getElementById('toastText');
+
+            toastText.textContent = message;
+            toast.className = `toast ${type === 'success' ? 'success' : 'error'}`;
+            toastIcon.className = `fa ${type === 'success' ? 'fa-check' : 'fa-exclamation-circle'}`;
+
+            toast.classList.add('show');
+            setTimeout(() => {
+                toast.classList.remove('show');
+            }, 3000);
+        }
+    </script>
+</body>
+
+</html>

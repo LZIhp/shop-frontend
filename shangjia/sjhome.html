@@ -1,0 +1,643 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>商家个人中心</title>
+  <!-- 仅保留必要外部资源 -->
+  <link rel="preload" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" as="style" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" />
+  <link rel="preload" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css" as="style" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" />
+  <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+
+  <!-- 原有核心样式 + 编辑表单样式 -->
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: "Segoe UI", "Microsoft YaHei", sans-serif;
+    }
+
+    body {
+      background-color: #f8fafc;
+      color: #1f2937;
+      min-height: 100vh;
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 20px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 20px;
+    }
+
+    .sidebar {
+      width: 260px;
+      background: #fff;
+      border-radius: 8px;
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+      padding: 24px;
+      flex-shrink: 0;
+    }
+
+    .main-content {
+      flex: 1;
+      background: #fff;
+      border-radius: 8px;
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+      padding: 30px;
+    }
+
+    .user-profile {
+      text-align: center;
+      padding: 20px 0;
+      border-bottom: 1px solid #e5e7eb;
+      margin-bottom: 20px;
+    }
+
+    .avatar {
+      width: 110px;
+      height: 110px;
+      border-radius: 50%;
+      object-fit: cover;
+      border: 4px solid #eff6ff;
+      margin-bottom: 15px;
+    }
+
+    .username {
+      font-size: 20px;
+      font-weight: 600;
+      margin-bottom: 5px;
+    }
+
+    .user-title {
+      font-size: 14px;
+      color: #2563eb;
+      background: #eff6ff;
+      padding: 3px 12px;
+      border-radius: 20px;
+      display: inline-block;
+    }
+
+    .nav-menu {
+      margin-top: 10px;
+    }
+
+    .nav-item {
+      padding: 12px 15px;
+      border-radius: 8px;
+      margin-bottom: 6px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      color: #1f2937;
+      font-weight: 500;
+      text-decoration: none;
+    }
+
+    .nav-item:hover {
+      background-color: #eff6ff;
+      color: #2563eb;
+    }
+
+    .nav-item.active {
+      background-color: #2563eb;
+      color: white;
+      position: relative;
+    }
+
+    .nav-item.active::before {
+      content: "";
+      position: absolute;
+      left: 0;
+      top: 0;
+      height: 100%;
+      width: 4px;
+      background-color: #1d4ed8;
+    }
+
+    .nav-item i {
+      margin-right: 12px;
+      font-size: 18px;
+      width: 20px;
+      text-align: center;
+    }
+
+    .section-title {
+      font-size: 22px;
+      margin-bottom: 25px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid #e5e7eb;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+    }
+
+    .section-title i {
+      margin-right: 10px;
+      color: #2563eb;
+    }
+
+    .info-item {
+      display: flex;
+      margin-bottom: 15px;
+      padding: 12px 0;
+      border-bottom: 1px solid #f3f4f6;
+    }
+
+    .info-label {
+      width: 120px;
+      color: #6b7280;
+      font-weight: 500;
+    }
+
+    .info-value {
+      flex: 1;
+    }
+
+    /* 编辑表单样式 */
+    .edit-form {
+      display: none;
+    }
+
+    .edit-form .info-item {
+      align-items: flex-start;
+    }
+
+    .edit-form .info-value {
+      display: flex;
+      flex: 1;
+    }
+
+    .edit-form input,
+    .edit-form select {
+      width: 100%;
+      padding: 8px 12px;
+      border: 1px solid #ddd;
+      border-radius: 6px;
+      font-size: 14px;
+      color: #333;
+    }
+
+    .edit-form input:focus,
+    .edit-form select:focus {
+      outline: none;
+      border-color: #2563eb;
+      box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.1);
+    }
+
+    .form-actions {
+      margin-top: 30px;
+      display: flex;
+      gap: 15px;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 10px 20px;
+      background-color: #2563eb;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: 500;
+      font-size: 15px;
+    }
+
+    .btn:hover {
+      background-color: #1d4ed8;
+    }
+
+    .btn-cancel {
+      background-color: #f3f4f6;
+      color: #6b7280;
+    }
+
+    .btn-cancel:hover {
+      background-color: #e5e7eb;
+    }
+
+    .content-section {
+      display: none;
+    }
+
+    .content-section.active {
+      display: block;
+    }
+
+    .badge {
+      display: inline-block;
+      padding: 3px 10px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 500;
+    }
+
+    .badge-success {
+      background-color: rgba(16, 185, 129, 0.1);
+      color: #10b981;
+    }
+
+    .error-message {
+      color: #ef4444;
+      margin-top: 15px;
+      font-size: 14px;
+      height: 20px;
+    }
+
+    @media (max-width: 768px) {
+      .container {
+        flex-direction: column;
+        padding: 15px;
+      }
+
+      .sidebar {
+        width: 100%;
+        margin-bottom: 15px;
+      }
+
+      .main-content {
+        padding: 20px;
+      }
+
+      .info-item {
+        flex-direction: column;
+      }
+
+      .info-label {
+        margin-bottom: 8px;
+      }
+    }
+
+    .toast {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      padding: 10px 20px;
+      border-radius: 8px;
+      color: white;
+      z-index: 9999;
+      display: flex;
+      align-items: center;
+    }
+
+    .toast-success {
+      background-color: #10b981;
+    }
+
+    .toast-error {
+      background-color: #ef4444;
+    }
+
+    .toast i {
+      margin-right: 8px;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="container">
+    <!-- 侧边栏 -->
+    <div class="sidebar">
+      <div class="user-profile">
+        <img src="https://picsum.photos/110/110?random=1" alt="商家头像" class="avatar" id="user-avatar" />
+        <div class="username" id="sidebar-username">加载中...</div>
+        <div class="user-title" id="sidebar-user-title">商家会员</div>
+      </div>
+
+      <div class="nav-menu">
+        <div class="nav-item active" data-target="profile">
+          <i class="fas fa-user"></i>
+          <span>商家资料</span>
+        </div>
+        <div class="nav-item">
+          <i class="fas fa-store"></i>
+          <a href="./注册店铺.html" style="color: inherit; text-decoration: none">注册店铺</a>
+        </div>
+        <div class="nav-item">
+          <i class="fas fa-cog"></i>
+          <a href="./展示店铺.html" style="color: inherit; text-decoration: none">管理店铺</a>
+        </div>
+        <div class="nav-item" id="logout-btn" style="margin-top: 20px; color: #ef4444">
+          <i class="fas fa-sign-out-alt"></i>
+          <span>退出登录</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- 主内容区 -->
+    <div class="main-content">
+      <div class="content-section active" id="profile-section">
+        <h2 class="section-title">
+          <i class="fas fa-user-circle"></i>商家资料
+        </h2>
+
+        <!-- 资料展示区 -->
+        <div class="info-display" id="info-display">
+          <div class="info-item">
+            <div class="info-label">商家名称</div>
+            <div class="info-value username" id="display-name">加载中...</div>
+          </div>
+          <div class="info-item">
+            <div class="info-label">联系电话</div>
+            <div class="info-value phone" id="display-phone">加载中...</div>
+          </div>
+          <div class="info-item">
+            <div class="info-label">注册时间</div>
+            <div class="info-value register-time" id="display-regtime">
+              加载中...
+            </div>
+          </div>
+          <div class="info-item">
+            <div class="info-label">账号状态</div>
+            <div class="info-value">
+              <span class="badge badge-success" id="display-status">加载中...</span>
+            </div>
+          </div>
+          <div class="info-item">
+            <div class="info-label">最后登录时间</div>
+            <div class="info-value" id="display-lastlogin">加载中...</div>
+          </div>
+
+          <button class="btn edit-btn" id="edit-profile-btn">
+            <i class="fas fa-edit"></i>编辑资料
+          </button>
+        </div>
+
+        <!-- 资料编辑表单（默认隐藏） -->
+        <form class="edit-form" id="edit-form">
+          <div class="info-item">
+            <div class="info-label">商家名称</div>
+            <div class="info-value">
+              <input type="text" id="edit-name" name="name" placeholder="请输入商家名称" required />
+            </div>
+          </div>
+          <div class="info-item">
+            <div class="info-label">联系电话</div>
+            <div class="info-value">
+              <input type="tel" id="edit-phone" name="phone_number" placeholder="请输入联系电话" required />
+            </div>
+          </div>
+
+          <div class="error-message" id="edit-error"></div>
+          <div class="form-actions">
+            <button type="button" class="btn btn-cancel" id="cancel-edit">
+              取消
+            </button>
+            <button type="submit" class="btn" id="save-edit">保存修改</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+  <!-- 核心脚本：精准适配后端返回字段 -->
+  <script>
+    const baseUrl = "http://26.37.246.143:8000";
+
+    // DOM元素
+    const infoDisplay = document.getElementById("info-display");
+    const editForm = document.getElementById("edit-form");
+    const editError = document.getElementById("edit-error");
+    const editBtn = document.getElementById("edit-profile-btn");
+    const cancelBtn = document.getElementById("cancel-edit");
+    const saveBtn = document.getElementById("save-edit");
+
+    // 页面加载完成后初始化
+    document.addEventListener("DOMContentLoaded", function () {
+      getRealMerchantInfo(); // 获取真实商家信息
+      bindNavToggle(); // 原有导航切换
+      initEditFunction(); // 编辑功能
+      initLogout(); // 退出登录
+    });
+
+    /**
+     * 核心：获取真实商家信息（适配后端实际返回字段）
+     */
+    async function getRealMerchantInfo() {
+      const sjToken = localStorage.getItem("sjlocaltoken");
+      if (!sjToken) {
+        showToast("请先登录商家账号", "error");
+        setTimeout(() => (window.location.href = "./sjlogin.html"), 1500);
+        return;
+      }
+
+      try {
+        const response = await axios({
+          url: `${baseUrl}/api/merchants/profile/`,
+          method: "GET",
+          headers: {
+            Authorization: `Bearer ${sjToken}`,
+            "Content-Type": "application/json",
+          },
+          timeout: 10000,
+        });
+
+        const realData = response.data;
+        console.log("真实商家信息：", realData);
+        renderMerchantData(realData); // 渲染实际返回的数据
+      } catch (error) {
+        console.error("获取商家信息失败：", error);
+        if (error.response?.status === 401) {
+          showToast("登录状态失效，请重新登录", "error");
+          localStorage.removeItem("sjlocaltoken");
+          setTimeout(() => (window.location.href = "./sjlogin.html"), 1500);
+        } else {
+          showToast("获取商家信息失败", "error");
+          // 加载失败时填充默认值
+          const defaultData = {
+            name: "未设置",
+            phone_number: "未设置",
+            created_at: "",
+            is_active: false,
+            last_login_time: "",
+          };
+          renderMerchantData(defaultData);
+        }
+      }
+    }
+
+    /**
+     * 渲染商家数据（完全适配后端返回字段）
+     */
+    function renderMerchantData(data) {
+      // 侧边栏
+      document.getElementById("sidebar-username").textContent =
+        data.name || "未设置";
+      document.getElementById("sidebar-user-title").textContent = "商家会员";
+
+      // 资料展示区（只显示后端实际返回的字段）
+      document.getElementById("display-name").textContent =
+        data.name || "未设置";
+      document.getElementById("display-phone").textContent =
+        data.phone_number || "未设置";
+      document.getElementById("display-regtime").textContent = data.created_at
+        ? formatDate(data.created_at)
+        : "未知";
+      document.getElementById("display-status").textContent = data.is_active
+        ? "正常"
+        : "禁用";
+      document.getElementById("display-lastlogin").textContent =
+        data.last_login_time ? formatDate(data.last_login_time) : "未知";
+
+      // 填充编辑表单默认值
+      document.getElementById("edit-name").value = data.name || "";
+      document.getElementById("edit-phone").value = data.phone_number || "";
+    }
+
+    /**
+     * 实现编辑资料功能（只编辑后端支持的字段）
+     */
+    function initEditFunction() {
+      // 点击编辑按钮：显示表单
+      editBtn.addEventListener("click", () => {
+        infoDisplay.style.display = "none";
+        editForm.style.display = "block";
+        editError.textContent = "";
+      });
+
+      // 点击取消按钮：隐藏表单
+      cancelBtn.addEventListener("click", () => {
+        editForm.style.display = "none";
+        infoDisplay.style.display = "block";
+        editError.textContent = "";
+      });
+
+      // 提交编辑表单：保存修改
+      editForm.addEventListener("submit", async (e) => {
+        e.preventDefault();
+        editError.textContent = "";
+        saveBtn.disabled = true;
+        saveBtn.innerHTML =
+          '<i class="fas fa-spinner fa-spin"></i> 保存中...';
+
+        const sjToken = localStorage.getItem("sjlocaltoken");
+        if (!sjToken) {
+          editError.textContent = "登录状态失效，请重新登录";
+          saveBtn.disabled = false;
+          saveBtn.innerHTML = "保存修改";
+          return;
+        }
+
+        // 收集表单数据（只提交后端支持的字段）
+        const updateData = {
+          name: document.getElementById("edit-name").value.trim(),
+          phone_number: document.getElementById("edit-phone").value.trim(),
+        };
+
+        try {
+          // 调用后端更新接口
+          await axios({
+            url: `${baseUrl}/api/merchants/profile/`,
+            method: "PUT",
+            headers: {
+              Authorization: `Bearer ${sjToken}`,
+              "Content-Type": "application/json",
+            },
+            data: updateData,
+            timeout: 10000,
+          });
+
+          // 保存成功
+          showToast("资料修改成功！", "success");
+          await getRealMerchantInfo(); // 刷新最新数据
+          editForm.style.display = "none";
+          infoDisplay.style.display = "block";
+        } catch (error) {
+          console.error("修改资料失败：", error);
+          let errorMsg = "修改失败，请稍后重试";
+          if (error.response?.data) {
+            errorMsg = Object.values(error.response.data).flat().join("；");
+          }
+          editError.textContent = errorMsg;
+        } finally {
+          saveBtn.disabled = false;
+          saveBtn.innerHTML = "保存修改";
+        }
+      });
+    }
+
+    /**
+     * 原有导航切换功能
+     */
+    function bindNavToggle() {
+      const navItems = document.querySelectorAll(".nav-item[data-target]");
+      const contentSections = document.querySelectorAll(".content-section");
+
+      navItems.forEach((item) => {
+        item.addEventListener("click", function () {
+          const target = this.getAttribute("data-target");
+          navItems.forEach((nav) => nav.classList.remove("active"));
+          this.classList.add("active");
+          contentSections.forEach((section) => {
+            section.classList.remove("active");
+            if (section.id === `${target}-section`) {
+              section.classList.add("active");
+            }
+          });
+        });
+      });
+    }
+
+    /**
+     * 退出登录功能
+     */
+    function initLogout() {
+      document.getElementById("logout-btn").addEventListener("click", () => {
+        if (confirm("确定要退出登录吗？")) {
+          localStorage.removeItem("sjlocaltoken");
+          localStorage.removeItem("sd_userid");
+          window.location.href = "./sj.html";
+        }
+      });
+    }
+
+    /**
+     * 日期格式化工具（适配后端ISO格式）
+     */
+    function formatDate(dateString) {
+      if (!dateString) return "";
+      const date = new Date(dateString);
+      return date.toLocaleString("zh-CN", {
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+        hour: "2-digit",
+        minute: "2-digit",
+        second: "2-digit",
+      });
+    }
+
+    /**
+     * 提示框功能
+     */
+    function showToast(message, type = "success") {
+      const toast = document.createElement("div");
+      toast.className = `toast toast-${type}`;
+      toast.innerHTML = `
+                <i class="fas ${type === "success"
+          ? "fa-check-circle"
+          : "fa-exclamation-circle"
+        }"></i>
+                <span>${message}</span>
+            `;
+      document.body.appendChild(toast);
+      setTimeout(() => (toast.style.opacity = "1"), 10);
+      setTimeout(() => {
+        toast.style.opacity = "0";
+        setTimeout(() => document.body.removeChild(toast), 300);
+      }, 3000);
+    }
+  </script>
+</body>
+
+</html>

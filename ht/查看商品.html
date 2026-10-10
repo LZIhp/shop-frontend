@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>管理员商品管理</title>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <style>
+        /* 全局样式美化 */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Microsoft YaHei', sans-serif;
+        }
+
+        body {
+            background-color: #f5f7fa;
+            padding: 20px;
+        }
+
+        .container {
+            width: 95%;
+            max-width: 1400px;
+            margin: 0 auto;
+            background-color: #fff;
+            border-radius: 12px;
+            box-shadow: 0 2px 12px rgba(0, 0, 0, 0.05);
+            padding: 20px;
+        }
+
+        h2 {
+            color: #333;
+            margin-bottom: 20px;
+            font-size: 22px;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 10px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        th {
+            background-color: #f8f9fa;
+            color: #333;
+            font-weight: 600;
+            text-align: center;
+            padding: 12px 8px;
+            border: 1px solid #e0e0e0;
+            font-size: 14px;
+        }
+
+        td {
+            text-align: center;
+            color: #666;
+            padding: 12px 8px;
+            border: 1px solid #e0e0e0;
+            font-size: 14px;
+        }
+
+        tr:hover {
+            background-color: #fafafa;
+            transition: background-color 0.2s ease;
+        }
+
+        img {
+            width: 80px;
+            height: auto;
+            border-radius: 4px;
+            border: 1px solid #eee;
+            cursor: pointer;
+            transition: transform 0.2s ease;
+        }
+
+        img:hover {
+            transform: scale(1.05);
+        }
+
+        /* 删除按钮样式 */
+        .delete-btn {
+            background-color: #dc3545;
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 13px;
+            transition: background-color 0.2s ease;
+        }
+
+        .delete-btn:hover {
+            background-color: #c82333;
+        }
+
+        .delete-btn:disabled {
+            background-color: #d9534f;
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        /* 空数据/错误提示样式 */
+        .empty-tip,
+        .error-tip {
+            text-align: center;
+            padding: 30px 20px;
+            font-size: 15px;
+        }
+
+        .empty-tip {
+            color: #999;
+        }
+
+        .error-tip {
+            color: #dc3545;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h2>商品管理列表</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>产品ID</th>
+                    <th>名称</th>
+                    <th>分类</th>
+                    <th>商家名称</th>
+                    <th>店铺名称</th>
+                    <th>价格</th>
+                    <th>图片</th>
+                    <th>创建时间</th>
+                    <th>更新时间</th>
+                    <th>操作</th>
+                </tr>
+            </thead>
+            <tbody id="productTableBody">
+                <!-- 动态数据将在这里渲染 -->
+            </tbody>
+        </table>
+    </div>
+
+    <script type="module">
+        import url1 from '../peizhi/config.js';
+        const token = localStorage.getItem('adtoken');
+        const tableBody = document.getElementById('productTableBody');
+        function formatImageUrl(oldImageUrl) {
+            // 处理空链接或无效链接（返回默认占位图，避免显示破碎图片）
+            const urlObj = new URL(oldImageUrl);
+            // 拼接新域名 + 图片路径（保留中文编码，浏览器会自动识别）
+            return `${url1}${urlObj.pathname}`;
+            // 若链接格式异常，直接返回原链接（避免报错）
+        }
+        // 格式化时间：ISO格式转中文易读格式
+        const formatTime = (timeStr) => {
+            if (!timeStr) return '-';
+            const date = new Date(timeStr);
+            // 处理无效时间
+            if (isNaN(date.getTime())) return '-';
+            return date.toLocaleString('zh-CN', {
+                year: 'numeric',
+                month: '2-digit',
+                day: '2-digit',
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit'
+            });
+        };
+
+        // 删除商品函数（模块内私有，无需全局暴露）
+        const deleteProduct = async (productId) => {
+            // 1. 确认删除
+            const isConfirm = confirm('确定要删除该商品吗？删除后不可恢复！');
+            if (!isConfirm) return;
+
+            // 2. 获取当前删除按钮并禁用
+            const btn = document.getElementById(`deleteBtn-${productId}`);
+            btn.disabled = true;
+            btn.innerText = '删除中...';
+
+            try {
+                // 3. 调用删除接口
+                await axios({
+                    url: `${url1}/api/admins/products/${productId}/`,
+                    method: 'DELETE',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                // 4. 删除成功处理
+                alert('商品删除成功！');
+                loadProductData(); // 刷新商品列表
+            } catch (error) {
+                // 5. 删除失败处理
+                console.error('删除商品失败：', error.response?.data || error.message);
+                const errorMsg = error.response?.data?.message ||
+                    error.response?.statusText ||
+                    '网络错误，请重试';
+                alert(`删除失败！${errorMsg}`);
+            } finally {
+                // 6. 恢复按钮状态
+                if (btn) {
+                    btn.disabled = false;
+                    btn.innerText = '删除';
+                }
+            }
+        };
+
+        // 加载商品数据（核心函数）
+        const loadProductData = async () => {
+            try {
+                // 清空表格并显示加载状态
+                tableBody.innerHTML = '<tr><td colspan="10" class="empty-tip">加载中...</td></tr>';
+
+                // 调用接口获取商品列表
+                const result = await axios({
+                    url: `${url1}/api/admins/products/`,
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                const products = result.data.results;
+                console.log(products);
+
+                // 清空加载状态
+                tableBody.innerHTML = '';
+
+                // 无数据处理
+                if (products.length === 0) {
+                    const emptyRow = document.createElement('tr');
+                    emptyRow.innerHTML = `<td colspan="10" class="empty-tip">暂无商品数据</td>`;
+                    tableBody.appendChild(emptyRow);
+                    return;
+                }
+
+                // 循环渲染商品行
+                products.forEach(product => {
+                    const row = document.createElement('tr');
+                    // 按钮添加 data-product-id 存储商品ID，去掉 onclick 属性
+                    row.innerHTML = `
+                        <td>${product.product_id || '-'}</td>
+                        <td>${product.name || '-'}</td>
+                        <td>${product.category || '-'}</td>
+                        <td>${product.merchant_name || '-'}</td>
+                        <td>${product.shop_name || '-'}</td>
+                        <td>¥${(product.price)}</td> 
+                        <td>
+                            ${product.image ?
+                            `<img src="${formatImageUrl(product.image)}" alt="${product.name || '商品图片'}" 
+                                 onclick="window.open('${product.image}', '_blank', 'noopener noreferrer')">` :
+                            '无图片'}
+                        </td>
+                        <td>${formatTime(product.created_at)}</td>
+                        <td>${formatTime(product.updated_at)}</td>
+                        <td>
+                            <button id="deleteBtn-${product.product_id}" 
+                                    class="delete-btn" 
+                                    data-product-id="${product.product_id}"> <!-- 关键：存储商品ID -->
+                                删除
+                            </button>
+                        </td>
+                    `;
+                    tableBody.appendChild(row);
+                });
+            } catch (error) {
+                // 加载失败处理
+                console.error('获取商品数据失败：', error.response?.data || error.message);
+                tableBody.innerHTML = '';
+                const errorRow = document.createElement('tr');
+                errorRow.innerHTML = `<td colspan="10" class="error-tip">数据加载失败，请刷新页面重试</td>`;
+                tableBody.appendChild(errorRow);
+            }
+        };
+
+        // 事件委托：监听表格体的点击事件（核心修复）
+        tableBody.addEventListener('click', (e) => {
+            // 判断点击的是删除按钮
+            if (e.target.classList.contains('delete-btn')) {
+                const productId = e.target.dataset.productId; // 从data属性获取商品ID
+                if (productId) {
+                    deleteProduct(productId); // 调用删除函数
+                }
+            }
+        });
+
+        // 页面加载时初始化数据
+        loadProductData();
+    </script>
+</body>
+
+</html>

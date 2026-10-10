@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>管理员店铺列表</title>
+  <!-- 引入样式和工具库 -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+</head>
+
+<body class="bg-gray-50 min-h-screen p-4 md:p-8">
+  <div class="max-w-6xl mx-auto">
+    <!-- 页面标题与总数 -->
+    <header class="mb-8">
+      <h1 class="text-2xl md:text-3xl font-bold text-gray-800">管理员店铺管理</h1>
+      <p class="text-gray-500 mt-2">共 <span id="totalCount" class="font-semibold text-blue-600">0</span> 家店铺</p>
+    </header>
+
+    <!-- 状态提示区 -->
+    <div id="status" class="mb-6 p-4 rounded hidden"></div>
+
+    <!-- 店铺列表容器 -->
+    <div id="shopsList" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+      <!-- 店铺卡片将动态渲染到这里 -->
+    </div>
+
+    <!-- 分页控制区 -->
+    <div id="pagination" class="flex justify-between items-center hidden">
+      <button id="prevBtn"
+        class="bg-gray-200 text-gray-600 py-2 px-4 rounded disabled:opacity-50 disabled:cursor-not-allowed" disabled>
+        <i class="fa fa-chevron-left mr-1"></i> 上一页
+      </button>
+      <button id="nextBtn" class="bg-blue-500 hover:bg-blue-600 text-white py-2 px-4 rounded">
+        下一页 <i class="fa fa-chevron-right ml-1"></i>
+      </button>
+    </div>
+  </div>
+
+  <script type="module">
+    import url1 from '../peizhi/config.js';
+    // 初始API地址
+    let currentApiUrl = `${url1}/api/shops/admin/`;
+    // DOM元素
+    const shopsList = document.getElementById('shopsList');
+    const totalCount = document.getElementById('totalCount');
+    const statusDiv = document.getElementById('status');
+    const prevBtn = document.getElementById('prevBtn');
+    const nextBtn = document.getElementById('nextBtn');
+    const pagination = document.getElementById('pagination');
+
+    // 显示状态提示
+    function showStatus(message, isError = false) {
+      statusDiv.textContent = message;
+      statusDiv.className = `mb-6 p-4 rounded ${isError ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'}`;
+    }
+
+    // 隐藏状态提示
+    function hideStatus() {
+      statusDiv.className = 'mb-6 p-4 rounded hidden';
+    }
+
+    // 根据状态显示不同颜色标签
+    function getStatusTag(status) {
+      switch (status.toLowerCase()) {
+        case 'approved':
+          return '<span class="bg-green-100 text-green-800 px-2 py-1 rounded text-xs">已通过</span>';
+        case 'pending':
+          return '<span class="bg-yellow-100 text-yellow-800 px-2 py-1 rounded text-xs">待审核</span>';
+        default:
+          return `<span class="bg-gray-100 text-gray-800 px-2 py-1 rounded text-xs">${status}</span>`;
+      }
+    }
+
+    // 渲染店铺列表
+    function renderShops(shops) {
+      // 清空列表容器
+      shopsList.innerHTML = '';
+
+      // 遍历店铺数据生成卡片
+      shops.forEach(shop => {
+        const shopCard = document.createElement('div');
+        shopCard.className = 'bg-white rounded-lg shadow p-5 border border-gray-100 hover:shadow-md transition-shadow';
+
+        // 格式化时间（转为本地时间）
+        const localTime = new Date(shop.created_at).toLocaleString('zh-CN', {
+          year: 'numeric',
+          month: '2-digit',
+          day: '2-digit',
+          hour: '2-digit',
+          minute: '2-digit'
+        });
+
+        shopCard.innerHTML = `
+                    <div class="flex justify-between items-start mb-3">
+                        <h3 class="font-semibold text-lg text-gray-800">${shop.name}</h3>
+                        ${getStatusTag(shop.status)}
+                    </div>
+                    <div class="space-y-2 text-sm text-gray-600">
+                        <p><i class="fa fa-id-card-o text-gray-400 w-5"></i> 店铺ID：<span class="text-gray-500">${shop.shop_id}</span></p>
+                        <p><i class="fa fa-map-marker text-gray-400 w-5"></i> 地址：${shop.address}</p>
+                        <p><i class="fa fa-phone text-gray-400 w-5"></i> 电话：${shop.phone_number}</p>
+                        <p><i class="fa fa-user text-gray-400 w-5"></i> 商户：${shop.merchant_name}</p>
+                        <p><i class="fa fa-calendar text-gray-400 w-5"></i> 创建时间：${localTime}</p>
+                    </div>
+                `;
+
+        shopsList.appendChild(shopCard);
+      });
+    }
+
+    // 更新分页按钮状态
+    function updatePagination(prevUrl, nextUrl) {
+      // 控制上一页按钮
+      if (prevUrl) {
+        prevBtn.disabled = false;
+        prevBtn.classList.remove('bg-gray-200', 'text-gray-600');
+        prevBtn.classList.add('bg-blue-500', 'hover:bg-blue-600', 'text-white');
+        prevBtn.setAttribute('data-url', prevUrl);
+      } else {
+        prevBtn.disabled = true;
+        prevBtn.classList.remove('bg-blue-500', 'hover:bg-blue-600', 'text-white');
+        prevBtn.classList.add('bg-gray-200', 'text-gray-600');
+        prevBtn.removeAttribute('data-url');
+      }
+
+      // 控制下一页按钮
+      if (nextUrl) {
+        nextBtn.disabled = false;
+        nextBtn.setAttribute('data-url', nextUrl);
+      } else {
+        nextBtn.disabled = true;
+        nextBtn.classList.add('opacity-50', 'cursor-not-allowed');
+        nextBtn.removeAttribute('data-url');
+      }
+
+      // 显示分页控件（只有有分页数据时显示）
+      pagination.classList.toggle('hidden', !prevUrl && !nextUrl);
+    }
+
+    // 获取店铺数据（核心函数）
+    async function fetchShops(url) {
+      showStatus('正在加载店铺数据...');
+
+      try {
+        // 获取本地token
+        const token = localStorage.getItem('adtoken');
+        if (!token) {
+          throw new Error('本地存储中未找到 adminRefreshToken，请先确认token存在');
+        }
+
+        // 发起Axios请求
+        const response = await axios.get(url, {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          },
+          timeout: 10000
+        });
+
+        const data = response.data;
+        hideStatus();
+
+        // 更新总数量
+        totalCount.textContent = data.count || 0;
+
+        // 渲染店铺列表
+        if (data.results && Array.isArray(data.results)) {
+          renderShops(data.results);
+        } else {
+          shopsList.innerHTML = '<div class="col-span-full text-center py-8 bg-gray-50 rounded-lg">暂无店铺数据</div>';
+        }
+
+        // 更新分页按钮
+        updatePagination(data.previous, data.next);
+
+      } catch (error) {
+        console.error('获取店铺数据失败：', error);
+      }
+    }
+
+    // 分页按钮点击事件
+    prevBtn.addEventListener('click', () => {
+      const prevUrl = prevBtn.getAttribute('data-url');
+      if (prevUrl) {
+        currentApiUrl = prevUrl;
+        fetchShops(prevUrl);
+      }
+    });
+
+    nextBtn.addEventListener('click', () => {
+      const nextUrl = nextBtn.getAttribute('data-url');
+      if (nextUrl) {
+        currentApiUrl = nextUrl;
+        fetchShops(nextUrl);
+      }
+    });
+
+    // 页面加载时初始化数据
+    window.addEventListener('load', () => {
+      fetchShops(currentApiUrl);
+    });
+  </script>
+</body>
+
+</html>

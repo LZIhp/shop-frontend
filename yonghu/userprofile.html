@@ -1,0 +1,750 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>我的个人中心</title>
+    <!-- 外部资源引入 -->
+    <link rel="preload" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" as="style">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+    <link rel="preload" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css" as="style">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
+    <link rel="stylesheet" href="./h-css/touxiang.css">
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Microsoft YaHei', sans-serif;
+        }
+
+        body {
+            background-color: #f5f5f5;
+            color: #333;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            display: flex;
+            flex-wrap: wrap;
+        }
+
+        .sidebar {
+            width: 250px;
+            background: #fff;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            padding: 20px;
+            margin-right: 20px;
+        }
+
+        .main-content {
+            flex: 1;
+            background: #fff;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            padding: 20px;
+        }
+
+        .user-profile {
+            text-align: center;
+            padding: 20px 0;
+            border-bottom: 1px solid #eee;
+            position: relative;
+        }
+
+        .avatar-container {
+            position: relative;
+            display: inline-block;
+        }
+
+        .avatar {
+            width: 100px;
+            height: 100px;
+            border-radius: 50%;
+            object-fit: cover;
+            margin-bottom: 15px;
+            border: 3px solid #f0f0f0;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .avatar:hover {
+            opacity: 0.8;
+        }
+
+        .avatar-edit-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            background: rgba(0, 0, 0, 0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            transition: opacity 0.3s;
+            cursor: pointer;
+        }
+
+        .avatar-container:hover .avatar-edit-overlay {
+            opacity: 1;
+        }
+
+        .avatar-edit-overlay i {
+            color: white;
+            font-size: 24px;
+        }
+
+        .username {
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .user-title {
+            font-size: 14px;
+            color: #888;
+            margin-bottom: 15px;
+        }
+
+        .nav-menu {
+            margin-top: 20px;
+        }
+
+        .nav-item {
+            padding: 12px 15px;
+            border-radius: 5px;
+            margin-bottom: 5px;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+        }
+
+        .nav-item:hover {
+            background-color: #f0f7ff;
+            color: #1890ff;
+        }
+
+        .nav-item.active {
+            background-color: #e6f7ff;
+            color: #1890ff;
+            font-weight: bold;
+        }
+
+        .nav-item i {
+            margin-right: 10px;
+            font-size: 16px;
+        }
+
+        .section-title {
+            font-size: 20px;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #eee;
+        }
+
+        .info-item {
+            display: flex;
+            margin-bottom: 15px;
+        }
+
+        .info-label {
+            width: 100px;
+            color: #888;
+        }
+
+        .info-value {
+            flex: 1;
+        }
+
+        .content-section {
+            display: none;
+        }
+
+        .content-section.active {
+            display: block;
+        }
+
+        .password-form {
+            max-width: 500px;
+        }
+
+        .password-strength {
+            height: 5px;
+            margin-top: 5px;
+            border-radius: 2px;
+            transition: all 0.3s;
+        }
+
+        .password-strength.weak {
+            background-color: #ff4d4f;
+            width: 33%;
+        }
+
+        .password-strength.medium {
+            background-color: #faad14;
+            width: 66%;
+        }
+
+        .password-strength.strong {
+            background-color: #52c41a;
+            width: 100%;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                flex-direction: column;
+            }
+
+            .sidebar {
+                width: 100%;
+                margin-right: 0;
+                margin-bottom: 20px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <!-- 侧边栏 -->
+        <div class="sidebar">
+            <div class="user-profile">
+                <div class="avatar-container">
+                    <!-- 已替换为指定的头像结构 -->
+                    <div class="avatar">
+                        <img src="image/微信图片_20250302194226.jpg" alt="用户头像"
+                            style="width: 100%; height: 100%; object-fit: cover;">
+                    </div>
+                    <div class="avatar-edit-overlay" data-bs-toggle="modal" data-bs-target="#avatar-modal">
+                        <i class="fas fa-camera"></i>
+                    </div>
+                </div>
+                <div class="username">张三</div>
+                <div class="user-title">高级会员</div>
+            </div>
+
+            <div class="nav-menu">
+                <div class="nav-item active" data-target="profile">
+                    <i class="fas fa-user"></i>
+                    <span>个人资料</span>
+                </div>
+                <div class="nav-item" data-target="password">
+                    <i class="fas fa-lock"></i>
+                    <span>修改密码</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- 主内容区 -->
+        <div class="main-content">
+            <!-- 个人资料部分 -->
+            <div class="content-section active" id="profile-section">
+                <h2 class="section-title">个人资料</h2>
+
+                <div class="info-item">
+                    <div class="info-label">用户名</div>
+                    <div class="info-value username">zhangsan</div>
+                </div>
+
+                <div class="info-item">
+                    <div class="info-label">真实姓名</div>
+                    <div class="info-value real-name">张三</div>
+                </div>
+
+                <div class="info-item">
+                    <div class="info-label">性别</div>
+                    <div class="info-value gender">男</div>
+                </div>
+
+                <div class="info-item">
+                    <div class="info-label">电子邮箱</div>
+                    <div class="info-value email">zhangsan@example.com</div>
+                </div>
+
+                <div class="info-item">
+                    <div class="info-label">注册时间</div>
+                    <div class="info-value register-time">2020-03-12 14:25:36</div>
+                </div>
+
+                <button class="edit-btn" data-bs-toggle="modal" data-bs-target=".edit-modal"
+                    style="margin-top: 20px; padding: 10px 20px; background-color: #1890ff; color: white; border: none; border-radius: 4px; cursor: pointer;">
+                    编辑资料
+                </button>
+            </div>
+
+            <!-- 修改密码部分 -->
+            <div class="content-section" id="password-section">
+                <h2 class="section-title">修改密码</h2>
+
+                <form class="password-form" id="password-form">
+                    <div class="mb-3">
+                        <label for="current-password" class="form-label">当前密码</label>
+                        <input type="password" class="form-control" id="current-password" name="currentPassword"
+                            required>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="new-password" class="form-label">新密码</label>
+                        <input type="password" class="form-control" id="new-password" name="newPassword" required>
+                        <div class="password-strength" id="password-strength"></div>
+                        <small class="form-text text-muted">密码应包含至少8个字符，包括字母和数字</small>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="confirm-password" class="form-label">确认新密码</label>
+                        <input type="password" class="form-control" id="confirm-password" name="confirmPassword"
+                            required>
+                        <div class="invalid-feedback" id="confirm-password-feedback">两次输入的密码不一致</div>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary" style="margin-top: 20px;">修改密码</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- 编辑资料模态框 -->
+    <div class="modal fade edit-modal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">编辑资料</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+
+                <div class="modal-body">
+                    <form id="edit-profile-form">
+                        <div class="mb-3">
+                            <label for="real-name-input" class="form-label">真实姓名</label>
+                            <input type="text" class="form-control" id="real-name-input" name="realName">
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="email-input" class="form-label">电子邮箱</label>
+                            <input type="email" class="form-control" id="email-input" name="email">
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">性别</label>
+                            <div>
+                                <div class="form-check form-check-inline">
+                                    <input class="form-check-input" type="radio" name="gender" id="gender-male"
+                                        value="男">
+                                    <label class="form-check-label" for="gender-male">男</label>
+                                </div>
+                                <div class="form-check form-check-inline">
+                                    <input class="form-check-input" type="radio" name="gender" id="gender-female"
+                                        value="女">
+                                    <label class="form-check-label" for="gender-female">女</label>
+                                </div>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">关闭</button>
+                    <button type="button" class="btn btn-primary" id="save-profile">保存更改</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 修改头像模态框 -->
+    <div class="modal fade" id="avatar-modal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">修改头像</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+
+                <div class="modal-body">
+                    <div class="text-center mb-3">
+                        <div id="avatar-preview-container">
+                            <!-- 预览区域也同步替换头像 -->
+                            <div class="avatar" style="width: 200px; height: 200px; margin: 0 auto;">
+                                <img id="avatar-preview" src="image/微信图片_20250302194226.jpg" alt="头像预览"
+                                    style="width: 100%; height: 100%; object-fit: cover;">
+                            </div>
+                        </div>
+                        <div id="avatar-error" style="color: #ff4d4f; font-size: 14px; margin-top: 8px; display: none;">
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="avatar-upload" class="form-label">选择图片（支持JPG/PNG，最大5MB）</label>
+                        <input class="form-control" type="file" id="avatar-upload" accept="image/jpeg,image/png">
+                    </div>
+                </div>
+
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                    <button type="button" class="btn btn-primary" id="save-avatar">保存头像</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 外部脚本引入 -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+
+    <script type="module">
+        import url1 from '../peizhi/config.js';
+        // 页面加载完成后初始化
+        document.addEventListener('DOMContentLoaded', function () {
+            // 1. 初始化用户信息
+            initUserInfo();
+
+            // 2. 绑定导航切换事件
+            bindNavToggle();
+
+            // 3. 初始化头像上传功能
+            initAvatarUpload();
+
+            // 4. 初始化资料编辑功能
+            initProfileEdit();
+
+            // 5. 初始化密码修改功能
+            initPasswordChange();
+        });
+
+        /**
+         * 初始化用户信息
+         * 从接口获取数据并更新页面显示
+         */
+        function initUserInfo() {
+            // 延迟请求，优先渲染页面
+            setTimeout(() => {
+                axios({
+                    url: `${url1}/api/v1/users/info`,
+                    method: 'get',
+                    headers: {
+                        Authorization: `Bearer ${localStorage.getItem("token")}`,
+                    },
+                }).then(result => {
+                    updateUserDOM(result.data);
+                }).catch(error => {
+                    console.error('获取用户信息失败:', error);
+                });
+            }, 100);
+        }
+
+        /**
+         * 更新用户信息到DOM
+         * @param {Object} userData - 用户数据对象
+         */
+        function updateUserDOM(userData) {
+            // 更新页面显示
+            document.querySelector('.username').textContent = userData.userName || '';
+            document.querySelector('.real-name').textContent = userData.nickName || '';
+            document.querySelector('.gender').textContent = userData.sex || '未设置';
+            document.querySelector('.email').textContent = userData.email || '未设置';
+            document.querySelector('.register-time').textContent = userData.updatedAt || '';
+
+            // 设置表单默认值
+            document.getElementById('real-name-input').value = userData.nickName || '';
+            document.getElementById('email-input').value = userData.email || '';
+
+            // 设置性别单选按钮
+            if (userData.sex === '男') {
+                document.getElementById('gender-male').checked = true;
+            } else if (userData.sex === '女') {
+                document.getElementById('gender-female').checked = true;
+            }
+
+            // 设置头像
+            if (userData.avatar) {
+                // 更新侧边栏头像
+                document.querySelector('.avatar img').src = userData.avatar;
+                // 更新预览头像
+                document.getElementById('avatar-preview').src = userData.avatar;
+            }
+        }
+
+        /**
+         * 绑定导航切换事件
+         */
+        function bindNavToggle() {
+            const navItems = document.querySelectorAll('.nav-item');
+            const contentSections = document.querySelectorAll('.content-section');
+
+            navItems.forEach(item => {
+                item.addEventListener('click', function () {
+                    const target = this.getAttribute('data-target');
+
+                    // 更新导航激活状态
+                    navItems.forEach(nav => nav.classList.remove('active'));
+                    this.classList.add('active');
+
+                    // 显示对应的内容区域
+                    contentSections.forEach(section => {
+                        section.classList.remove('active');
+                        if (section.id === `${target}-section`) {
+                            section.classList.add('active');
+                        }
+                    });
+                });
+            });
+        }
+
+        /**
+         * 初始化头像上传功能
+         */
+        function initAvatarUpload() {
+            const avatarUpload = document.getElementById('avatar-upload');
+            const avatarPreview = document.getElementById('avatar-preview');
+            const avatarError = document.getElementById('avatar-error');
+            const saveAvatarBtn = document.getElementById('save-avatar');
+            let selectedFile = null;
+
+            // 图片选择与预览
+            avatarUpload.addEventListener('change', function (e) {
+                selectedFile = e.target.files[0];
+                avatarError.style.display = 'none';
+
+                if (!selectedFile) {
+                    avatarPreview.src = 'image/微信图片_20250302194226.jpg';
+                    return;
+                }
+
+                // 格式校验
+                const allowedTypes = ['image/jpeg', 'image/png'];
+                if (!allowedTypes.includes(selectedFile.type)) {
+                    selectedFile = null;
+                    avatarError.textContent = '请上传JPG或PNG格式的图片';
+                    avatarError.style.display = 'block';
+                    this.value = '';
+                    return;
+                }
+
+                // 大小校验
+                const maxSize = 5 * 1024 * 1024;
+                if (selectedFile.size > maxSize) {
+                    selectedFile = null;
+                    avatarError.textContent = '图片大小不能超过5MB，请选择更小的图片';
+                    avatarError.style.display = 'block';
+                    this.value = '';
+                    return;
+                }
+
+                // 预览
+                const reader = new FileReader();
+                reader.onload = function (e) {
+                    avatarPreview.src = e.target.result;
+                };
+                reader.readAsDataURL(selectedFile);
+            });
+
+            // 保存头像
+            saveAvatarBtn.addEventListener('click', function () {
+                const token = localStorage.getItem("token");
+                if (!token) {
+                    avatarError.textContent = '请先登录再上传头像';
+                    avatarError.style.display = 'block';
+                    return;
+                }
+
+                if (!selectedFile) {
+                    avatarError.textContent = '请先选择要上传的图片';
+                    avatarError.style.display = 'block';
+                    return;
+                }
+
+                // 按钮状态
+                const originalBtnText = saveAvatarBtn.textContent;
+                saveAvatarBtn.textContent = '上传中...';
+                saveAvatarBtn.disabled = true;
+
+                const formData = new FormData();
+                formData.append('avatar', selectedFile);
+
+                axios({
+                    url: `${url1}/api/users/update-avatar/`,
+                    method: 'PATCH',
+                    headers: {
+                        Authorization: `Bearer ${token}`,
+                    },
+                    data: formData,
+                    timeout: 30000,
+                }).then(result => {
+
+                    // 更新侧边栏头像
+                    const newAvatarUrl = result.data.avatar_url;  // 字段名修改
+                    // 更新侧边栏头像
+                    document.querySelector('.avatar img').src = newAvatarUrl;
+                    // 更新模态框预览头像
+                    document.getElementById('avatar-preview').src = newAvatarUrl;
+                    // 更新当前头像地址（用于失败回退）
+                    currentAvatarUrl = newAvatarUrl;
+
+                    // 关闭模态框、提示成功（后续代码不变）
+                    const avatarModal = bootstrap.Modal.getInstance(document.getElementById('avatar-modal'));
+                    avatarModal.hide();
+                    alert('头像更新成功！');
+
+                }).catch(error => {
+                    console.error('头像更新失败:', error);
+                    let errorMsg = '头像更新失败，请重试';
+
+                    if (error.response) {
+                        if (error.response.status === 401) {
+                            errorMsg = '登录已过期，请重新登录';
+                            localStorage.removeItem("token");
+                        } else if (error.response.data?.message) {
+                            errorMsg = error.response.data.message;
+                        }
+                    } else if (error.request) {
+                        errorMsg = '网络异常，请检查网络连接后重试';
+                    }
+
+                    avatarError.textContent = errorMsg;
+                    avatarError.style.display = 'block';
+                }).finally(() => {
+                    saveAvatarBtn.textContent = originalBtnText;
+                    saveAvatarBtn.disabled = false;
+                    avatarUpload.value = '';
+                    selectedFile = null;
+                });
+            });
+
+            // 模态框关闭时重置
+            const avatarModal = document.getElementById('avatar-modal');
+            avatarModal.addEventListener('hidden.bs.modal', function () {
+                avatarError.style.display = 'none';
+                avatarUpload.value = '';
+                selectedFile = null;
+            });
+        }
+
+        /**
+         * 初始化资料编辑功能
+         */
+        function initProfileEdit() {
+            document.getElementById('save-profile').addEventListener('click', function () {
+                const formData = {
+                    nickName: document.getElementById('real-name-input').value,
+                    email: document.getElementById('email-input').value,
+                    sex: document.querySelector('input[name="gender"]:checked')?.value || ''
+                };
+
+                axios({
+                    url: `${url1}/api/v1/users/update`,
+                    method: 'post',
+                    headers: {
+                        Authorization: `Bearer ${localStorage.getItem("token")}`,
+                    },
+                    data: formData
+                }).then(result => {
+                    // 更新页面显示
+                    document.querySelector('.real-name').textContent = formData.nickName;
+                    document.querySelector('.gender').textContent = formData.sex;
+                    document.querySelector('.email').textContent = formData.email;
+
+                    // 关闭模态框
+                    const editModal = bootstrap.Modal.getInstance(document.querySelector('.edit-modal'));
+                    editModal.hide();
+
+                    alert('资料更新成功！');
+                }).catch(error => {
+                    console.error('更新资料失败:', error);
+                    alert('资料更新失败，请重试');
+                });
+            });
+        }
+
+        /**
+         * 初始化密码修改功能
+         */
+        function initPasswordChange() {
+            const newPasswordInput = document.getElementById('new-password');
+            const passwordStrength = document.getElementById('password-strength');
+            const confirmPasswordInput = document.getElementById('confirm-password');
+            const passwordForm = document.getElementById('password-form');
+
+            // 密码强度检测
+            newPasswordInput.addEventListener('input', function () {
+                const password = this.value;
+                let strength = 0;
+
+                if (password.length >= 8) strength++;
+                if (/[a-z]/.test(password)) strength++;
+                if (/[A-Z]/.test(password)) strength++;
+                if (/[0-9]/.test(password)) strength++;
+                if (/[^a-zA-Z0-9]/.test(password)) strength++;
+
+                // 更新密码强度显示
+                passwordStrength.className = 'password-strength';
+                if (password.length === 0) {
+                    passwordStrength.style.width = '0';
+                } else if (strength <= 2) {
+                    passwordStrength.classList.add('weak');
+                } else if (strength <= 4) {
+                    passwordStrength.classList.add('medium');
+                } else {
+                    passwordStrength.classList.add('strong');
+                }
+            });
+
+            // 密码确认验证
+            confirmPasswordInput.addEventListener('input', function () {
+                const newPassword = newPasswordInput.value;
+                const confirmPassword = this.value;
+
+                if (confirmPassword && newPassword !== confirmPassword) {
+                    this.classList.add('is-invalid');
+                } else {
+                    this.classList.remove('is-invalid');
+                }
+            });
+
+            // 表单提交
+            passwordForm.addEventListener('submit', function (e) {
+                e.preventDefault();
+
+                const currentPassword = document.getElementById('current-password').value;
+                const newPassword = newPasswordInput.value;
+                const confirmPassword = confirmPasswordInput.value;
+
+                // 前端验证
+                if (newPassword !== confirmPassword) {
+                    alert('两次输入的密码不一致');
+                    return;
+                }
+
+                axios({
+                    url: `${url1}/api/users/change-password/`,
+                    method: 'post',
+                    headers: {
+                        Authorization: `Bearer ${localStorage.getItem("token")}`,
+                    },
+                    data: {
+                        old_password: currentPassword,
+                        new_password: newPassword,
+                        new_password_confirm: newPassword
+                    }
+                }).then(result => {
+                    alert('密码修改成功！');
+                    // 重置表单
+                    passwordForm.reset();
+                    passwordStrength.style.width = '0';
+                }).catch(error => {
+                    console.error('修改密码失败:', error);
+                    alert('修改密码失败，请检查当前密码是否正确');
+                });
+            });
+        }
+    </script>
+</body>
+
+</html>
